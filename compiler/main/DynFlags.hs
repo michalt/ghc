@@ -282,6 +282,7 @@ data DynFlag
    | Opt_IrrefutableTuples
    | Opt_CmmSink
    | Opt_CmmElimCommonBlocks
+   | Opt_Comparisons
 
    -- Interface files
    | Opt_IgnoreInterfacePragmas
@@ -2059,6 +2060,7 @@ fFlags = [
   ( "irrefutable-tuples",               Opt_IrrefutableTuples, nop ),
   ( "cmm-sink",                         Opt_CmmSink, nop ),
   ( "cmm-elim-common-blocks",           Opt_CmmElimCommonBlocks, nop ),
+  ( "comparisons",                      Opt_Comparisons, nop),
   ( "gen-manifest",                     Opt_GenManifest, nop ),
   ( "embed-manifest",                   Opt_EmbedManifest, nop ),
   ( "ext-core",                         Opt_EmitExternalCore, nop ),
@@ -2329,6 +2331,7 @@ optLevelFlags
     , ([2],     Opt_LiberateCase)
     , ([2],     Opt_SpecConstr)
     , ([2],     Opt_RegsGraph)
+    , ([2],     Opt_Comparisons)
     , ([0,1,2], Opt_LlvmTBAA)
     , ([0,1,2], Opt_RegLiveness)
     , ([1,2],   Opt_CmmSink)

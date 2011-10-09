@@ -249,6 +249,7 @@ data CoreToDo           -- These are diff core-to-core passes,
   | CoreDoSpecialising
   | CoreDoSpecConstr
   | CoreCSE
+  | CoreDoComparisons
   | CoreDoRuleCheck CompilerPhase String   -- Check for non-application of rules
                                            -- matching this string
   | CoreDoVectorisation
@@ -272,6 +273,7 @@ coreDumpFlag CoreDoFloatInwards       = Just Opt_D_verbose_core2core
 coreDumpFlag (CoreDoFloatOutwards {}) = Just Opt_D_verbose_core2core
 coreDumpFlag CoreLiberateCase         = Just Opt_D_verbose_core2core
 coreDumpFlag CoreDoStaticArgs 	      = Just Opt_D_verbose_core2core
+coreDumpFlag CoreDoComparisons        = Just Opt_D_verbose_core2core
 coreDumpFlag CoreDoStrictness 	      = Just Opt_D_dump_stranal
 coreDumpFlag CoreDoWorkerWrapper      = Just Opt_D_dump_worker_wrapper
 coreDumpFlag CoreDoSpecialising       = Just Opt_D_dump_spec
@@ -309,6 +311,7 @@ instance Outputable CoreToDo where
   ppr (CoreDoRuleCheck {})     = ptext (sLit "Rule check")
   ppr CoreDoNothing            = ptext (sLit "CoreDoNothing")
   ppr (CoreDoPasses {})        = ptext (sLit "CoreDoPasses")
+  ppr CoreDoComparisons        = ptext (sLit "Comparisons")
 
 pprPassDetails :: CoreToDo -> SDoc
 pprPassDetails (CoreDoSimplify n md) = vcat [ ptext (sLit "Max iterations =") <+> int n 

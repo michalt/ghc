@@ -24,6 +24,7 @@ import Rules            ( RuleBase, emptyRuleBase, mkRuleBase, unionRuleBase,
                           extendRuleBaseList, ruleCheckProgram, addSpecInfo, )
 import PprCore          ( pprCoreBindings, pprCoreExpr )
 import OccurAnal        ( occurAnalysePgm, occurAnalyseExpr )
+import Comparisons      ( comparisons )
 import IdInfo
 import CoreUtils        ( coreBindsSize, coreBindsStats, exprSize )
 import Simplify         ( simplTopBinds, simplExpr )
@@ -130,6 +131,7 @@ getCoreToDo dflags
     static_args   = dopt Opt_StaticArgumentTransformation dflags
     rules_on      = dopt Opt_EnableRewriteRules           dflags
     eta_expand_on = dopt Opt_DoLambdaEtaExpansion         dflags
+    comparisons   = dopt Opt_Comparisons                  dflags
 
     maybe_rule_check phase = runMaybe rule_check (CoreDoRuleCheck phase)
 
@@ -294,6 +296,8 @@ getCoreToDo dflags
 
         runWhen spec_constr CoreDoSpecConstr,
 
+        runWhen comparisons CoreDoComparisons,
+
         maybe_rule_check (Phase 0),
 
         -- Final clean-up simplification:
@@ -401,6 +405,9 @@ doCorePass _      CoreDoSpecConstr          = {-# SCC "SpecConstr" #-}
 
 doCorePass _      CoreDoVectorisation       = {-# SCC "Vectorise" #-}
                                               vectorise
+
+doCorePass _      CoreDoComparisons         = {-# SCC "Comparisons" #-}
+                                              doPass comparisons
 
 doCorePass _      CoreDoPrintCore              = observe   printCore
 doCorePass _      (CoreDoRuleCheck phase pat)  = ruleCheckPass phase pat

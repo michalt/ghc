@@ -350,6 +350,7 @@ Library
         FloatOut
         LiberateCase
         OccurAnal
+        Comparisons
         SAT
         SetLevels
         SimplCore
