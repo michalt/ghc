@@ -116,10 +116,10 @@ module TcType (
   --------------------------------
   -- Rexported from Kind
   Kind, typeKind,
-  unliftedTypeKind, liftedTypeKind, argTypeKind,
+  unliftedTypeKind, liftedTypeKind,
   openTypeKind, constraintKind, mkArrowKind, mkArrowKinds, 
   isLiftedTypeKind, isUnliftedTypeKind, isSubOpenTypeKind, 
-  isSubArgTypeKind, tcIsSubKind, splitKindFunTys, defaultKind,
+  tcIsSubKind, splitKindFunTys, defaultKind,
   mkMetaKindVar,
 
   --------------------------------

@@ -79,13 +79,11 @@ module Type (
         
         -- ** Common Kinds and SuperKinds
         anyKind, liftedTypeKind, unliftedTypeKind, openTypeKind,
-        argTypeKind, ubxTupleKind, constraintKind,
-        superKind, 
+        constraintKind, superKind, 
 
         -- ** Common Kind type constructors
         liftedTypeKindTyCon, openTypeKindTyCon, unliftedTypeKindTyCon,
-        argTypeKindTyCon, ubxTupleKindTyCon, constraintKindTyCon,
-        anyKindTyCon,
+        constraintKindTyCon, anyKindTyCon,
 
 	-- * Type free variables
 	tyVarsOfType, tyVarsOfTypes,
@@ -102,12 +100,10 @@ module Type (
         -- * Other views onto Types
         coreView, tcView, 
 
-        repType, deepRepType,
+        UnaryType, RepType(..), flattenRepType, repType,
 
 	-- * Type representation for the code generator
-	PrimRep(..),
-
-	typePrimRep,
+	typePrimRep, typeRepArity,
 
 	-- * Main type substitution data types
 	TvSubstEnv,	-- Representation widely visible
@@ -159,7 +155,7 @@ import PrelNames	         ( eqTyConKey )
 -- others
 import {-# SOURCE #-} IParam ( ipTyCon )
 import Unique		( Unique, hasKey )
-import BasicTypes	( IPName(..) )
+import BasicTypes	( Arity, RepArity, IPName(..) )
 import Name		( Name )
 import NameSet
 import StaticFlags
@@ -592,6 +588,15 @@ newtype at outermost level; and bale out if we see it again.
 		~~~~~~~~~~~~~~~~~~~~
 
 \begin{code}
+type UnaryType = Type
+
+data RepType = UbxTupleRepType [UnaryType]
+             | RepType UnaryType
+
+flattenRepType :: RepType -> [UnaryType]
+flattenRepType (UbxTupleRepType tys) = tys
+flattenRepType (RepType ty)          = [ty]
+
 -- | Looks through:
 --
 --	1. For-alls
@@ -600,11 +605,11 @@ newtype at outermost level; and bale out if we see it again.
 --	4. All newtypes, including recursive ones, but not newtype families
 --
 -- It's useful in the back end of the compiler.
-repType :: Type -> Type
+repType :: Type -> RepType
 repType ty
   = go emptyNameSet ty
   where
-    go :: NameSet -> Type -> Type
+    go :: NameSet -> Type -> RepType
     go rec_nts ty    	  		-- Expand predicates and synonyms
       | Just ty' <- coreView ty
       = go rec_nts ty'
@@ -616,30 +621,10 @@ repType ty
       | Just (rec_nts', ty') <- carefullySplitNewType_maybe rec_nts tc tys
       = go rec_nts' ty'
 
-    go _ ty = ty
+      | isUnboxedTupleTyCon tc
+      = UbxTupleRepType (concatMap (flattenRepType . go rec_nts) tys)
 
-deepRepType :: Type -> Type
--- Same as repType, but looks recursively
-deepRepType ty
-  = go emptyNameSet ty
-  where
-    go rec_nts ty    	  		-- Expand predicates and synonyms
-      | Just ty' <- coreView ty
-      = go rec_nts ty'
-
-    go rec_nts (ForAllTy _ ty)		-- Drop foralls
-	= go rec_nts ty
-
-    go rec_nts (TyConApp tc tys)	-- Expand newtypes
-      | Just (rec_nts', ty') <- carefullySplitNewType_maybe rec_nts tc tys
-      = go rec_nts' ty'
-
-      -- Apply recursively; this is the "deep" bit
-    go rec_nts (TyConApp tc tys) = TyConApp tc (map (go rec_nts) tys)
-    go rec_nts (AppTy ty1 ty2)   = mkAppTy (go rec_nts ty1) (go rec_nts ty2)
-    go rec_nts (FunTy ty1 ty2)   = FunTy   (go rec_nts ty1) (go rec_nts ty2)
-
-    go _ ty = ty
+    go _ ty = RepType ty
 
 carefullySplitNewType_maybe :: NameSet -> TyCon -> [Type] -> Maybe (NameSet,Type)
 -- Return the representation of a newtype, unless 
@@ -659,15 +644,23 @@ carefullySplitNewType_maybe rec_nts tc tys
 -- ToDo: this could be moved to the code generator, using splitTyConApp instead
 -- of inspecting the type directly.
 
--- | Discovers the primitive representation of a more abstract 'Type'
--- Only applied to types of values
-typePrimRep :: Type -> PrimRep
-typePrimRep ty = case repType ty of
-		   TyConApp tc _ -> tyConPrimRep tc
-		   FunTy _ _	 -> PtrRep
-		   AppTy _ _	 -> PtrRep	-- See Note [AppTy rep] 
-		   TyVarTy _	 -> PtrRep
-		   _             -> pprPanic "typePrimRep" (ppr ty)
+-- | Discovers the primitive representation of a more abstract 'UnaryType'
+typePrimRep :: UnaryType -> PrimRep
+typePrimRep ty
+  = case repType ty of
+      UbxTupleRepType _ -> panic "typePrimRep: UbxTupleRepType"
+      RepType rep -> case rep of
+        TyConApp tc _ -> tyConPrimRep tc
+        FunTy _ _     -> PtrRep
+        AppTy _ _     -> PtrRep      -- See Note [AppTy rep] 
+        TyVarTy _     -> PtrRep
+        _             -> pprPanic "typePrimRep" (ppr ty)
+
+typeRepArity :: Arity -> Type -> RepArity
+typeRepArity 0 _ = 0
+typeRepArity n ty = case repType ty of
+  RepType (FunTy ty1 ty2) -> length (flattenRepType (repType ty1)) + typeRepArity (n - 1) ty2
+  _                       -> pprPanic "typeRepArity: arity greater than type can handle" (ppr (n, ty))
 \end{code}
 
 Note [AppTy rep]

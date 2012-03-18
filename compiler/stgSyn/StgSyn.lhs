@@ -512,7 +512,7 @@ type GenStgAlt bndr occ
 
 data AltType
   = PolyAlt             -- Polymorphic (a type variable)
-  | UbxTupAlt TyCon     -- Unboxed tuple
+  | UbxTupAlt Int       -- Unboxed tuple of this arity
   | AlgAlt    TyCon     -- Algebraic data type; the AltCons will be DataAlts
   | PrimAlt   TyCon     -- Primitive data type; the AltCons will be LitAlts
 \end{code}
@@ -781,7 +781,7 @@ pprStgOp (StgFCallOp op _) = ppr op
 
 instance Outputable AltType where
   ppr PolyAlt        = ptext (sLit "Polymorphic")
-  ppr (UbxTupAlt tc) = ptext (sLit "UbxTup") <+> ppr tc
+  ppr (UbxTupAlt n)  = ptext (sLit "UbxTup") <+> ppr n
   ppr (AlgAlt tc)    = ptext (sLit "Alg")    <+> ppr tc
   ppr (PrimAlt tc)   = ptext (sLit "Prim")   <+> ppr tc
 
