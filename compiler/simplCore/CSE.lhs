@@ -193,8 +193,19 @@ cseBind env (Rec pairs)
 cseRhs :: CSEnv -> (OutBndr, InExpr) -> (CSEnv, OutExpr)
 cseRhs env (id',rhs)
   = case lookupCSEnv env rhs' of
-        Just other_expr     -> (env,                             other_expr)
-        Nothing             -> (addCSEnvItem env rhs' (Var id'), rhs')
+      -- Since now we have something like
+      --   let x = y
+      -- we want to add a mapping x |-> y
+      Just var@(Var id'') -> (extendCSSubst env id' id'', var)
+
+      -- This shouldn't be possible -- we only insert mappings to variables or
+      -- to unboxed tuples, but an unboxed tuple cannot be the RHS of a let.
+      Just expr -> WARN( True, text "CSE.cseRhs: unexpected result of lookup:"
+                         <+> ppr rhs' <+> text "|->" <+> ppr expr
+                         <+> text "in RHS of" <+> ppr id' )
+                   (env, expr)
+
+      Nothing -> (addCSEnvItem env rhs' (Var id'), rhs')
   where
     rhs' | isAlwaysActive (idInlineActivation id') = cseExpr env rhs
          | otherwise                               = rhs
