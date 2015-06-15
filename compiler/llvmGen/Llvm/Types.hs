@@ -50,7 +50,8 @@ data LlvmType
   | LMVector Int LlvmType -- ^ A vector of 'LlvmType'
   | LMLabel               -- ^ A 'LlvmVar' can represent a label (address)
   | LMVoid                -- ^ Void type
-  | LMStruct [LlvmType]   -- ^ Structure type
+  | LMStruct [LlvmType]   -- ^ Packed structure type
+  | LMStructU [LlvmType]  -- ^ Unpacked structure type
   | LMAlias LlvmAlias     -- ^ A type alias
   | LMMetadata            -- ^ LLVM Metadata
 
@@ -70,6 +71,7 @@ instance Outputable LlvmType where
   ppr (LMLabel        ) = text "label"
   ppr (LMVoid         ) = text "void"
   ppr (LMStruct tys   ) = text "<{" <> ppCommaJoin tys <> text "}>"
+  ppr (LMStructU tys  ) = text "{" <> ppCommaJoin tys <> text "}"
   ppr (LMMetadata     ) = text "metadata"
 
   ppr (LMFunction (LlvmFunctionDecl _ _ _ r varg p _))
@@ -328,6 +330,8 @@ llvmWidthInBits _      LMVoid          = 0
 llvmWidthInBits dflags (LMStruct tys)  = sum $ map (llvmWidthInBits dflags) tys
 llvmWidthInBits _      (LMFunction  _) = 0
 llvmWidthInBits dflags (LMAlias (_,t)) = llvmWidthInBits dflags t
+llvmWidthInBits _      (LMStructU _)   =
+    panic "llvmWidthInBits: not implemented for LMStructU"
 llvmWidthInBits _      LMMetadata      = panic "llvmWidthInBits: Meta-data has no runtime representation!"
 
 
