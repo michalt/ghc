@@ -49,6 +49,7 @@ import BasicTypes
 import Outputable
 import FastString
 import DynFlags
+import TyCon
 
 import Control.Monad
 
@@ -583,9 +584,37 @@ thunkCode cl_info fv_details _cc node arity body
             -- subsumed by this enclosing cc
             do { enterCostCentreThunk (CmmReg nodeReg)
                ; let lf_info = closureLFInfo cl_info
-               ; fv_bindings <- mapM bind_fv fv_details
-               ; load_fvs node lf_info fv_bindings
+               -- ; fv_bindings <- mapM bind_fv fv_details
+               -- ; load_fvs node lf_info fv_bindings
+               ; mapM (addBindsForClosure node lf_info) fv_details
                ; void $ cgExpr body }}}
+
+-- The idea here is that instead of generating all the loads to local registers
+-- upfront, we simply add the bindings (addBindC) to the free variables such
+-- that the CgIdInfo contains not a register but a memory access extracting the
+-- value from the closure.
+addBindsForClosure :: LocalReg -> LambdaFormInfo -> (NonVoid Id, ByteOff) -> FCode ()
+addBindsForClosure node closure_lf_info (nvid@(NonVoid id), off) = do
+    dflags <- getDynFlags
+    -- `id` is a free variable for the closure we're constructing, so it must be
+    -- already in scope.
+    info <- getCgIdInfo id
+    let cmm_type = case idPrimRep id of
+                       VoidRep -> pprPanic "addBindsForClosure" (ppr id)
+                       _       -> primRepCmmType dflags (idPrimRep id)
+        closure_tag = lfDynTag dflags closure_lf_info
+        id_load_expr = mkTaggedObjectLoadExpr dflags cmm_type node off closure_tag
+    -- Replace the current `CmmExpr` to use when referring `id` with the load
+    -- from the closure.
+    addBindC $ info { cg_loc = CmmLoc id_load_expr }
+
+-- Similar to mkTaggedObjectLoad, but doesn't create the actual load.
+mkTaggedObjectLoadExpr :: DynFlags -> CmmType -> LocalReg -> ByteOff -> DynTag -> CmmExpr
+mkTaggedObjectLoadExpr dflags cmm_type base offset tag =
+    (CmmLoad (cmmOffsetB dflags
+                         (CmmReg (CmmLocal base))
+                         (offset - tag))
+             cmm_type)
 
 
 ------------------------------------------------------------------------
