@@ -6,7 +6,7 @@ module CmmSink (
 import Cmm
 import CmmOpt
 import BlockId
-import CmmLive
+import CmmLive2
 import CmmUtils
 import Hoopl
 import CodeGen.Platform

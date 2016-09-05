@@ -14,7 +14,7 @@ import CLabel
 import CmmUtils
 import MkGraph
 import ForeignCall
-import CmmLive
+import CmmLive2
 import CmmProcPoint
 import SMRep
 import Hoopl

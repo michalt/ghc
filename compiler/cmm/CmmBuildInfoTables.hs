@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, GADTs #-}
+{-# LANGUAGE BangPatterns, CPP, GADTs #-}
 
 -- See Note [Deprecations in Hoopl] in Hoopl module
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
@@ -35,6 +35,8 @@ import Control.Monad
 
 import qualified Prelude as P
 import Prelude hiding (succ)
+
+import qualified Hoopl.Dataflow2 as D2
 
 foldSet :: (a -> b -> b) -> b -> Set a -> b
 foldSet = Set.foldr
@@ -107,8 +109,51 @@ cafTransfers = mkBTransfer3 first middle last
                               else s
 
 cafAnal :: CmmGraph -> CAFEnv
-cafAnal g = dataflowAnalBwd g [] $ analBwd cafLattice cafTransfers
+cafAnal g =
+    let result1 = dataflowAnalBwd g [] $ analBwd cafLattice cafTransfers
+        result2 = cafAnal2 g
+     in if not D2.doAssertions || result1 == result2
+           then result1
+           else pprPanic "cafAnal" (ppr result1 $$ ppr result2)
 
+-- Dataflow2 version
+
+cafAnal2 :: CmmGraph -> CAFEnv
+cafAnal2 cmmGraph =
+    D2.analyze D2.Bwd cafLattice2 cafTransfers2 cmmGraph mapEmpty
+
+cafLattice2 :: D2.DataflowLattice2 CAFSet
+cafLattice2 = D2.DataflowLattice2 Set.empty add
+  where
+    add (D2.OldFact old) (D2.NewFact new) =
+        case old `Set.union` new of
+            new' -> D2.changedIf (Set.size new' > Set.size old) new'
+
+cafTransfers2 :: D2.TransferFun Block CmmNode CAFSet
+cafTransfers2 block facts =
+    let cafs = cafsInBlock block
+        joined = D2.joinOutFacts cafLattice2 (lastNode block) facts
+        !result = cafs `Set.union` joined
+    in mapSingleton (entryLabel block) result
+
+
+
+cafsInBlock :: CmmBlock -> CAFSet
+cafsInBlock block =
+    D2.foldBlockNodesB3Strict
+        (flip const, cafsInNode, cafsInNode)
+        block
+        Set.empty
+  where
+    cafsInNode = foldExpDeep addCaf
+    addCaf e set =
+        case e of
+            CmmLit (CmmLabel c) -> add c set
+            CmmLit (CmmLabelOff c _) -> add c set
+            CmmLit (CmmLabelDiffOff c1 c2 _) -> add c1 $! add c2 set
+            _ -> set
+    add l s | hasCAF l  = Set.insert (toClosureLbl l) s
+            | otherwise = s
 -----------------------------------------------------------------------
 -- Building the SRTs
 

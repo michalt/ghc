@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -366,11 +367,15 @@ instance UserOfRegs r a => UserOfRegs r (Maybe a) where
 
 instance UserOfRegs r a => UserOfRegs r [a] where
   foldRegsUsed _      _ set [] = set
-  foldRegsUsed dflags f set (x:xs) = foldRegsUsed dflags f (foldRegsUsed dflags f set x) xs
+  foldRegsUsed dflags f set (x:xs) =
+      let !used = foldRegsUsed dflags f set x
+      in foldRegsUsed dflags f used xs
 
 instance DefinerOfRegs r a => DefinerOfRegs r [a] where
   foldRegsDefd _      _ set [] = set
-  foldRegsDefd dflags f set (x:xs) = foldRegsDefd dflags f (foldRegsDefd dflags f set x) xs
+  foldRegsDefd dflags f set (x:xs) =
+      let !defined = foldRegsDefd dflags f set x
+      in foldRegsDefd dflags f defined xs
 
 instance DefinerOfRegs r a => DefinerOfRegs r (Maybe a) where
   foldRegsDefd _      _ set Nothing  = set

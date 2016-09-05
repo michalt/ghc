@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, DisambiguateRecordFields #-}
+{-# LANGUAGE GADTs, DisambiguateRecordFields, BangPatterns #-}
 
 module CmmProcPoint
     ( ProcPointSet, Status(..)
@@ -17,7 +17,7 @@ import Cmm
 import PprCmm ()
 import CmmUtils
 import CmmInfo
-import CmmLive (cmmGlobalLiveness)
+import CmmLive2 (cmmGlobalLiveness)
 import CmmSwitch
 import Data.List (sortBy)
 import Maybes
@@ -27,6 +27,7 @@ import Platform
 import UniqSupply
 
 import Hoopl
+import qualified Hoopl.Dataflow2 as D2
 
 -- Compute a minimal set of proc points for a control-flow graph.
 
@@ -118,6 +119,7 @@ type ProcPointSet = BlockSet
 data Status
   = ReachedBy ProcPointSet  -- set of proc points that directly reach the block
   | ProcPoint               -- this block is itself a proc point
+  deriving (Eq)  -- FIXME(michalt): temporary
 
 instance Outputable Status where
   ppr (ReachedBy ps)
@@ -133,14 +135,23 @@ procPointAnalysis :: ProcPointSet -> CmmGraph -> UniqSM (BlockEnv Status)
 -- Once you know what the proc-points are, figure out
 -- what proc-points each block is reachable from
 -- See Note [Proc-point analysis]
-procPointAnalysis procPoints g@(CmmGraph {g_graph = graph}) =
-  -- pprTrace "procPointAnalysis" (ppr procPoints) $
+procPointAnalysis procPoints graph = do
+    result <- procPointAnalysis2 procPoints graph
+    if not D2.doAssertions
+        then return result
+        else do
+            resultOld <- procPointAnalysisOld procPoints graph
+            if resultOld == result
+                then return resultOld
+                else pprPanic "procpointanalysis" (ppr resultOld $$ ppr result)
+
+procPointAnalysisOld :: ProcPointSet -> CmmGraph -> UniqSM (BlockEnv Status)
+procPointAnalysisOld procPoints g@(CmmGraph {g_graph = graph}) = do
   dataflowAnalFwdBlocks g initProcPoints $ analFwd lattice forward
   where initProcPoints = [(id, ProcPoint) | id <- setElems procPoints,
                                             id `setMember` labelsInGraph ]
                                     -- See Note [Non-existing proc-points]
         labelsInGraph  = labelsDefined graph
--- transfer equations
 
 forward :: FwdTransfer CmmNode Status
 forward = mkFTransfer3 first middle last
@@ -166,6 +177,44 @@ lattice = DataflowLattice "direct proc-point reachability" unreached add_to
            where
              union = setUnion p' p
 
+lattice2 :: D2.DataflowLattice2 Status
+lattice2 = D2.DataflowLattice2 unreached add_to
+  where
+    unreached = ReachedBy setEmpty
+    add_to (D2.OldFact ProcPoint) _ = D2.NotChanged ProcPoint
+    add_to _ (D2.NewFact ProcPoint) = D2.Changed ProcPoint
+    -- because of previous case
+    add_to (D2.OldFact (ReachedBy p)) (D2.NewFact (ReachedBy p'))
+        | setSize union > setSize p = D2.Changed (ReachedBy union)
+        | otherwise = D2.NotChanged (ReachedBy p)
+      where
+        union = setUnion p' p
+
+procPointAnalysis2 :: ProcPointSet -> CmmGraph -> UniqSM (BlockEnv Status)
+procPointAnalysis2 procPoints cmmGraph@(CmmGraph {g_graph = graph}) = do
+    return $
+        D2.analyze D2.Fwd lattice2 procPointTransfer cmmGraph initProcPoints
+  where
+    -- See Note [Non-existing proc-points]
+    labelsInGraph = labelsDefined graph
+    initProcPoints =
+        D2.mkFactBase
+            lattice2
+            [ (id, ProcPoint)
+            | id <- setElems procPoints
+            , id `setMember` labelsInGraph
+            ]
+
+procPointTransfer :: D2.TransferFun Block CmmNode Status
+procPointTransfer block ppMap =
+    let label = entryLabel block
+        !fact =
+            case mapLookup label ppMap of
+                Just ProcPoint -> ReachedBy $! setSingleton label
+                Just f -> f
+                Nothing -> D2.fact_bot2 lattice2
+        result = map (\id -> (id, fact)) (successors block)
+    in D2.mkFactBase lattice2 result
 ----------------------------------------------------------------------
 
 -- It is worth distinguishing two sets of proc points: those that are

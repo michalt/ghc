@@ -220,6 +220,7 @@ Library
         CmmLex
         CmmLint
         CmmLive
+        CmmLive2
         CmmMachOp
         CmmMonad
         CmmSwitch
@@ -527,6 +528,7 @@ Library
         Vectorise.Exp
         Vectorise
         Hoopl.Dataflow
+        Hoopl.Dataflow2
         Hoopl
 --        CgInfoTbls used in ghci/DebuggerUtils
 --        CgHeapery  mkVirtHeapOffsets used in ghci

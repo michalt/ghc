@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ExplicitForAll #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -310,12 +311,18 @@ foreignTargetHints target
 instance UserOfRegs LocalReg (CmmNode e x) where
   foldRegsUsed dflags f z n = case n of
     CmmAssign _ expr -> fold f z expr
-    CmmStore addr rval -> fold f (fold f z addr) rval
-    CmmUnsafeForeignCall t _ args -> fold f (fold f z t) args
+    CmmStore addr rval ->
+        let !used = fold f z addr
+        in fold f used rval
+    CmmUnsafeForeignCall t _ args ->
+        let !used = fold f z t
+        in fold f used args
     CmmCondBranch expr _ _ _ -> fold f z expr
     CmmSwitch expr _ -> fold f z expr
     CmmCall {cml_target=tgt} -> fold f z tgt
-    CmmForeignCall {tgt=tgt, args=args} -> fold f (fold f z tgt) args
+    CmmForeignCall {tgt=tgt, args=args} ->
+        let !used = fold f z tgt
+        in fold f used args
     _ -> z
     where fold :: forall a b.
                        UserOfRegs LocalReg a =>
@@ -325,12 +332,20 @@ instance UserOfRegs LocalReg (CmmNode e x) where
 instance UserOfRegs GlobalReg (CmmNode e x) where
   foldRegsUsed dflags f z n = case n of
     CmmAssign _ expr -> fold f z expr
-    CmmStore addr rval -> fold f (fold f z addr) rval
-    CmmUnsafeForeignCall t _ args -> fold f (fold f z t) args
+    CmmStore addr rval ->
+        let !used = fold f z addr
+        in fold f used rval
+    CmmUnsafeForeignCall t _ args ->
+        let !used = fold f z t
+        in fold f used args
     CmmCondBranch expr _ _ _ -> fold f z expr
     CmmSwitch expr _ -> fold f z expr
-    CmmCall {cml_target=tgt, cml_args_regs=args} -> fold f (fold f z args) tgt
-    CmmForeignCall {tgt=tgt, args=args} -> fold f (fold f z tgt) args
+    CmmCall {cml_target=tgt, cml_args_regs=args} ->
+        let !used = fold f z args
+        in fold f used tgt
+    CmmForeignCall {tgt=tgt, args=args} ->
+        let !used = fold f z tgt
+        in fold f used args
     _ -> z
     where fold :: forall a b.
                        UserOfRegs GlobalReg a =>
