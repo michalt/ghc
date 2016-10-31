@@ -23,12 +23,10 @@ you will screw up the layout where they are used in case expressions!
 #include "ghcautoconf.h"
 
 #define GLOBAL_VAR(name,value,ty)  \
-{-# NOINLINE name #-};             \
 name :: IORef (ty);                \
 name = Util.global (value);
 
 #define GLOBAL_VAR_M(name,value,ty) \
-{-# NOINLINE name #-};              \
 name :: IORef (ty);                 \
 name = Util.globalM (value);
 

@@ -489,8 +489,7 @@ mark GHC.List.filter as INLINABLE) is as follows. Say I have this module:
   {-# RULES
   "filter"     [~1] forall p xs.  filter p xs = build (\c n -> foldr
   (filterFB c p) n xs)
-  "filterList" [1]  forall p.     foldr (filterFB (:) p) [] = filter p
-   #-}
+  "filterList" [1]  forall p.     foldr (filterFB (:) p) [] = filter p #-}
 
 Then (because RULES are applied inside INLINABLE unfoldings, but inlinings
 are not), the unfolding given to "filter" in the interface file will be:
@@ -637,8 +636,7 @@ Example (from GHC.Enum):
 
   {-# RULES
   "eftInt"  [~1] forall x y. eftInt x y = build (\ c n -> eftIntFB c n x y)
-  "eftIntList"  [1] eftIntFB  (:) [] = eftInt
-   #-}
+  "eftIntList"  [1] eftIntFB  (:) [] = eftInt #-}
 
 Note [Specialisation rules]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

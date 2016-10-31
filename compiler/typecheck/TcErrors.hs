@@ -639,8 +639,8 @@ warn about that.  A classic case is
 We'd like to point out that the T3 match is inaccessible. It
 will have a Given constraint [G] Int ~ Bool.
 
-But we don't want to report ALL insoluble Given constraints.  See Trac
-#12466 for a long discussion on.  For example, if we aren't careful
+But we don't want to report ALL insoluble Given constraints.
+See Trac #12466 for a long discussion on.  For example, if we aren't careful
 we'll complain about
    f :: ((Int ~ Bool) => a -> a) -> Int
 which arguably is OK.  It's more debatable for

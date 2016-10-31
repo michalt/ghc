@@ -827,8 +827,7 @@ was this one:
 
     {-# RULES
     "iterate"   forall f x.     iterate f x = build (\c _n -> iterateFB c f x)
-    "iterateFB"                 iterateFB (:) = iterateList
-     #-}
+    "iterateFB"                 iterateFB (:) = iterateList #-}
 
 This got shorted out to:
 
@@ -840,8 +839,7 @@ This got shorted out to:
 
     {-# RULES
     "iterate"   forall f x.     iterate f x = build (\c _n -> iterateFB c f x)
-    "iterateFB"                 iterateFB (:) = iterate
-     #-}
+    "iterateFB"                 iterateFB (:) = iterate #-}
 
 And now we get an infinite loop in the rule system
         iterate f x -> build (\cn -> iterateFB c f x)

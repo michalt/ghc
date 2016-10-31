@@ -1013,7 +1013,7 @@ The table below shows the results of RTTI and the improvement
 calculated for different combinations of evaluatedness and :type t.
 Regard the two first columns as input and the next two as output.
 
-  # |     t     |  :type t  | rtti(t)  | improv.    | result
+    |     t     |  :type t  | rtti(t)  | improv.    | result
     ------------------------------------------------------------
   1 |     _     |    t b    |    a     | none       | OK
   2 |     _     |   MkT b   |    a     | none       | OK
@@ -1052,7 +1052,7 @@ Regard the two first columns as input and the next two as output.
 
   Another set of examples with t :: [MkT (Maybe Int)]  \equiv  [[Maybe (Maybe Int)]]
 
-  # |     t     |    :type t    |  rtti(t)    | improvement | result
+    |     t     |    :type t    |  rtti(t)    | improvement | result
     ---------------------------------------------------------------------
   1 |(Just _:_) | [t (Maybe a)] | [[Maybe b]] | t = []      |
     |           |               |             | b = Maybe a |

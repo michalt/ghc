@@ -313,7 +313,7 @@ mkRoleAnnotDecl loc tycon roles
 
 {- **********************************************************************
 
-  #cvBinds-etc# Converting to @HsBinds@, etc.
+  cvBinds-etc Converting to @HsBinds@, etc.
 
   ********************************************************************* -}
 
@@ -424,7 +424,7 @@ has_args ((L _ (Match _ args _ _)) : _) = not (null args)
 
 {- **********************************************************************
 
-  #PrefixToHS-utils# Utilities for conversion
+  PrefixToHS-utils Utilities for conversion
 
   ********************************************************************* -}
 

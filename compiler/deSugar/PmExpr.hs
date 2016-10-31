@@ -117,8 +117,8 @@ impact of this is the following:
   * We have instant equality check for overloaded literals (we do not rely on
     the term oracle which is rather expensive, both in terms of performance and
     memory). This significantly improves the performance of functions `covered`
-    `uncovered` and `divergent` in deSugar/Check.hs and effectively addresses
-    #11161.
+    `uncovered` and `divergent` in deSugar/Check.hs and effectively
+    addresses #11161.
 
   * The warnings issued are simpler.
 

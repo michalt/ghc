@@ -212,7 +212,7 @@ Consider
   f :: (forall a. Eq a => a->a) -> Bool -> ...
   {-# RULES "foo" forall (v::forall b. Eq b => b->b).
        f b True = ...
-    #-}
+    ... #-}
 Here we *must* solve the wanted (Eq a) from the given (Eq a)
 resulting from skolemising the agument type of g.  So we
 revert to SimplCheck when going under an implication.

@@ -157,8 +157,8 @@ Note [ModulePairSet determinism and performance]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The size of ModulePairSet is quadratic in the number of modules.
 The Ord instance for Module uses string comparison which is linear in the
-length of ModuleNames and UnitIds. This adds up to a significant cost, see
-#12191.
+length of ModuleNames and UnitIds. This adds up to a significant cost,
+see #12191.
 
 To get reasonable performance ModulePairSet uses nondeterministic ordering
 on Module based on Uniques. It doesn't affect the ABI, because it only

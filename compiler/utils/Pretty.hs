@@ -301,9 +301,7 @@ text s = case length s of {sl -> textBeside_ (Str s)  sl Empty}
 
 -- RULE that turns (text "abc") into (ptext (A# "abc"#)) to avoid the
 -- intermediate packing/unpacking of the string.
-{-# RULES
-  "text/str" forall a. text (unpackCString# a) = ptext (Ptr a)
- #-}
+{-# RULES "text/str" forall a. text (unpackCString# a) = ptext (Ptr a) #-}
 
 ftext :: FastString -> Doc
 ftext s = case lengthFS s of {sl -> textBeside_ (PStr s) sl Empty}
