@@ -70,6 +70,8 @@ data Direction = Fwd | Bwd
 
 type TransferFun f = CmmBlock -> FactBase f -> FactBase f
 
+type RewriteFun b (n :: * -> * -> *) f = (b n C C -> FactBase f -> (b n C C, FactBase f))
+
 analyzeCmmBwd, analyzeCmmFwd
     :: DataflowLattice f
     -> TransferFun f
@@ -133,6 +135,18 @@ fixpointAnalysis direction lattice do_block entries blockmap = loop start
                     (updateFact join dep_blocks) (todo1, fbase1) out_facts
         in loop todo2 fbase2
 
+
+fixpointRewrite
+    :: forall f n.
+       NonLocal n
+    => Direction
+    -> DataflowLattice f
+    -> RewriteFun Block n f
+    -> [Label]
+    -> LabelMap (Block n C C)
+    -> FactBase f
+    -> FactBase f
+fixpointRewrite direction lattice do_block entries blockmap = undefined
 
 
 {-
