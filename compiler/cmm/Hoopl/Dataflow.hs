@@ -25,6 +25,7 @@ module Hoopl.Dataflow
   , Fact, FactBase
   , getFact, mkFactBase
   , analyzeCmmFwd, analyzeCmmBwd
+  , rewrite, rewriteBwd
   , changedIf
   , joinOutFacts
   )
@@ -32,6 +33,7 @@ where
 
 import BlockId
 import Cmm
+import UniqSupply
 
 import Data.Array
 import Data.List
@@ -70,7 +72,14 @@ data Direction = Fwd | Bwd
 
 type TransferFun f = CmmBlock -> FactBase f -> FactBase f
 
-type RewriteFun b (n :: * -> * -> *) f = (b n C C -> FactBase f -> (b n C C, FactBase f))
+-- FIXME: Consider using something like RewrittenBlock to indicate whether a
+-- block has been modified or not (and so avoid any updates in the map of
+-- blocks).
+-- data RewrittenBlock b n e x
+--     = Rewritten !(b n e x)
+--     | NotRewritten !(b n e x)
+
+type RewriteFun b (n :: * -> * -> *) f = (b n C C -> FactBase f -> UniqSM (b n C C, FactBase f))
 
 analyzeCmmBwd, analyzeCmmFwd
     :: DataflowLattice f
@@ -135,6 +144,31 @@ fixpointAnalysis direction lattice do_block entries blockmap = loop start
                     (updateFact join dep_blocks) (todo1, fbase1) out_facts
         in loop todo2 fbase2
 
+rewriteBwd
+    :: DataflowLattice f
+    -> RewriteFun Block CmmNode f
+    -> CmmGraph
+    -> FactBase f
+    -> UniqSM (CmmGraph, FactBase f)
+rewriteBwd = rewrite Bwd
+
+rewrite
+    :: Direction
+    -> DataflowLattice f
+    -> RewriteFun Block CmmNode f
+    -> CmmGraph
+    -> FactBase f
+    -> UniqSM (CmmGraph, FactBase f)
+rewrite dir lattice rwFun cmmGraph initFact = do
+    let entry = g_entry cmmGraph
+        hooplGraph = g_graph cmmGraph
+        blockMap1 =
+            case hooplGraph of
+                GMany NothingO bm NothingO -> bm
+        entries = if mapNull initFact then [entry] else mapKeys initFact
+    (blockMap2, facts) <- fixpointRewrite dir lattice rwFun entries blockMap1 initFact
+    return (cmmGraph { g_graph = GMany NothingO blockMap2 NothingO }, facts)
+
 
 fixpointRewrite
     :: forall f n.
@@ -145,8 +179,34 @@ fixpointRewrite
     -> [Label]
     -> LabelMap (Block n C C)
     -> FactBase f
-    -> FactBase f
-fixpointRewrite direction lattice do_block entries blockmap = undefined
+    -> UniqSM (LabelMap (Block n C C), FactBase f)
+fixpointRewrite direction lattice do_block entries blockmap = loop start blockmap
+  where
+    -- Sorting the blocks helps to minimize the number of times we need to
+    -- process blocks. For instance, for forward analysis we want to look at
+    -- blocks in reverse postorder. Also, see comments for sortBlocks.
+    blocks     = sortBlocks direction entries blockmap
+    num_blocks = length blocks
+    block_arr  = {-# SCC "block_arr" #-} listArray (0, num_blocks - 1) blocks
+    start      = {-# SCC "start" #-} [0 .. num_blocks - 1]
+    dep_blocks = {-# SCC "dep_blocks" #-} mkDepBlocks direction blocks
+    join       = fact_join lattice
+
+    loop
+        :: IntHeap                 -- ^ Worklist, i.e., blocks to process
+        -> LabelMap (Block n C C)  -- ^ Current blocks.
+        -> FactBase f              -- ^ Current facts.
+        -> UniqSM (LabelMap (Block n C C), FactBase f)
+    loop []              !blocks1 !fbase1 = return (blocks1, fbase1)
+    loop (index : todo1) !blocks1 !fbase1 = do
+        let block = block_arr ! index
+        (new_block, out_facts) <- {-# SCC "do_block_rewrite" #-} do_block block fbase1
+            -- FIXME: This could be conditional since we don't always rewrite blocks.
+        let blocks2 = mapInsert (entryLabel new_block) new_block blocks1
+            (todo2, fbase2) = {-# SCC "mapFoldWithKey_rewrite" #-}
+                mapFoldWithKey
+                    (updateFact join dep_blocks) (todo1, fbase1) out_facts
+        loop todo2 blocks2 fbase2
 
 
 {-

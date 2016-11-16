@@ -86,3 +86,38 @@ xferLive dflags (BlockCC eNode middle xNode) fBase =
     in mapSingleton (entryLabel eNode) result
 {-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive LocalReg) #-}
 {-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive GlobalReg) #-}
+
+
+removeDeadAssignments :: CmmGraph -> UniqSM (CmmGraph, BlockEnv CmmLive)
+removeDeadAssignments cmmGraph =
+    rewriteBwd liveLattice go cmmGraph emptyBlockMap
+  where
+    go block factBase = case block of
+        BNil -> undefined
+        (BlockCO n b) -> undefined
+
+
+
+
+    go BNil f = f
+    go (BlockCO n b) f = ftr n $! go b f
+    go (BlockCC l b n) f = ftr l $! go b $! ltr n f
+    go (BlockOC b n) f = go b $! ltr n f
+    go (BMiddle n) f = mtr n f
+    go (BCat b1 b2) f = go b1 $! go b2 f
+    go (BSnoc h n) f = go h $! mtr n f
+    go (BCons n t) f = mtr n $! go t f
+
+    middle :: CmmNode O O -> Fact O CmmLive -> CmmReplGraph O O
+    middle (CmmAssign (CmmLocal reg') _) live
+            | not (reg' `elemRegSet` live)
+            = return $ Just emptyGraph
+    -- XXX maybe this should be somewhere else...
+    middle (CmmAssign lhs (CmmReg rhs))   _ | lhs == rhs
+            = return $ Just emptyGraph
+    middle (CmmStore lhs (CmmLoad rhs _)) _ | lhs == rhs
+            = return $ Just emptyGraph
+    middle _ _ = return Nothing
+
+    nothing :: CmmNode e x -> Fact x CmmLive -> CmmReplGraph e x
+    nothing _ _ = return Nothing
