@@ -17,6 +17,7 @@ import BlockId
 import Cmm
 import PprCmmExpr ()
 import Hoopl
+import UniqSupply
 
 import Maybes
 import Outputable
@@ -88,17 +89,79 @@ xferLive dflags (BlockCC eNode middle xNode) fBase =
 {-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive GlobalReg) #-}
 
 
-removeDeadAssignments :: CmmGraph -> UniqSM (CmmGraph, BlockEnv CmmLive)
-removeDeadAssignments cmmGraph =
-    rewriteBwd liveLattice go cmmGraph emptyBlockMap
+-- IDEA:
+-- * define `cat` function for composition (as below)
+-- * return BNil when deleting a CmmNode (so this fold is general for every
+--   transformation that goes CmmNode -> CmmNode!)
+-- * make sure to inline `cat`
+-- * profit!
+fold
+    :: (forall e x. CmmNode e x -> Fact f x -> (CmmNode e x, f))
+    -> Block CmmNode e x
+    -> Fact f x
+    -> UniqSM (Block CmmNodee e x, f)
+fold rewrite_node initBlock initFacts = go initBlock initFacts
   where
-    go block factBase = case block of
-        BNil -> undefined
-        (BlockCO n b) -> undefined
+    go BNil fact = return (block, fact)
+    go (BlockCC entry middle exit) fact1 = do
+        (exit2, fact2) <- rewrite_node exit fact1
+        (middle2, fact3) <- fold rewrite_node middle fact2
+        (entry2, fact4) <- rewrite_node entry fact3
+        return $! undefined
+    go (BlockCO node1 block1) fact1 = do
+        (node2, block2, fact2) <- (rewrite_node node1 `cat` go rewrite_node block1) fact1
+        (blockCons node2 block2, fact2)
+        case mnode2 of
+            Just (node2, fact3) -> return $! BlockCO node2 fact3
+            Nothing -> block2
+
+    cat :: (f -> UniqSM a) -> (f -> UniqSM b) -> UniqSM (a, b, f)
+    cat rew1 rew2 f1 = do
+        (a, f2) <- rew2 f1
+        (b, f3) <- rew1 f2
+        return (a, b, f3)
+
+removeDeadAssignments
+    :: forall r.
+       ( UserOfRegs r (CmmNode O O)
+       , DefinerOfRegs r (CmmNode O O)
+       , UserOfRegs r (CmmNode O C)
+       , DefinerOfRegs r (CmmNode O C)
+       )
+    => CmmGraph -> UniqSM (CmmGraph, BlockEnv (CmmLive r))
+removeDeadAssignments cmmGraph =
+    rewriteBwd liveLattice rewriteFun cmmGraph emptyBlockMap
+  where
+    rewriteFun :: Block CmmNode C C -> FactBase f -> UniqSM (Block CmmNode C C, FactBase f)
+    rewriteFun = undefined
+
+
+    -- getNode :: CmmNode O O -> f -> Maybe (CmmNode O O)
+    -- getNode (CmmAssign (CmmLocal reg) _) live
+    --     | not (reg `elemRegSet` live) = Nothing
+    -- getNode (CmmAssign lhs (CmmReg rhs)) _ | lhs == rhs = Nothing
+    -- getNode (CmmStore lhs (CmmLoad rhs _)) _ | lhs == rhs = Nothing
+    -- getNode node _ = Just node
+
+
+    -- How should an interface based on a fold over a block look like???
+    --
+    -- We should have
+    --   do_node :: node -> fact -> (node, fact)
+    -- then the fold is
+    --   facts = process last node
+    --   go block blockWithLastNode factsAfterLastNode
+    --
+    --   go currentBlock accBlock accFacts
+    --   go (Block node block) =
+    --     let (newBlock1, newFacts1) = go block accBlock accFacts
+    --         newBlock2 = if useful node facts then node <> block else block
+    --         newFacts2 = analyze node
+    --     in (newBlock2, 
 
 
 
-
+{-
     go BNil f = f
     go (BlockCO n b) f = ftr n $! go b f
     go (BlockCC l b n) f = ftr l $! go b $! ltr n f
@@ -121,3 +184,4 @@ removeDeadAssignments cmmGraph =
 
     nothing :: CmmNode e x -> Fact x CmmLive -> CmmReplGraph e x
     nothing _ _ = return Nothing
+-}
