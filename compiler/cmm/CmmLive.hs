@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module CmmLive
@@ -89,6 +90,7 @@ xferLive dflags (BlockCC eNode middle xNode) fBase =
 {-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive GlobalReg) #-}
 
 
+
 -- IDEA:
 -- * define `cat` function for composition (as below)
 -- * return BNil when deleting a CmmNode (so this fold is general for every
@@ -96,30 +98,92 @@ xferLive dflags (BlockCC eNode middle xNode) fBase =
 -- * make sure to inline `cat`
 -- * profit!
 fold
-    :: (forall e x. CmmNode e x -> Fact f x -> (CmmNode e x, f))
-    -> Block CmmNode e x
-    -> Fact f x
-    -> UniqSM (Block CmmNodee e x, f)
-fold rewrite_node initBlock initFacts = go initBlock initFacts
+    :: forall f.
+       (CmmNode C O -> Fact O f -> UniqSM (CmmNode C O, f))
+    -> (CmmNode O O -> Fact O f -> UniqSM (Block CmmNode O O, f))
+    -> (CmmNode O C -> Fact C f -> UniqSM (CmmNode O C, f))
+    -> Block CmmNode C C
+    -> FactBase f
+    -> UniqSM (Block CmmNode C C, f)
+fold rewriteCO rewriteOO rewriteOC initBlock initFacts = go initBlock initFacts
   where
-    go BNil fact = return (block, fact)
-    go (BlockCC entry middle exit) fact1 = do
-        (exit2, fact2) <- rewrite_node exit fact1
-        (middle2, fact3) <- fold rewrite_node middle fact2
-        (entry2, fact4) <- rewrite_node entry fact3
-        return $! undefined
-    go (BlockCO node1 block1) fact1 = do
-        (node2, block2, fact2) <- (rewrite_node node1 `cat` go rewrite_node block1) fact1
-        (blockCons node2 block2, fact2)
-        case mnode2 of
-            Just (node2, fact3) -> return $! BlockCO node2 fact3
-            Nothing -> block2
+    go :: forall e x. Block CmmNode e x -> Fact x f -> UniqSM (Block CmmNode e x, f)
+    go (BlockCC nodeE1 block1 nodeX1) fact1 = do
+        (!nodeX2, fact2) <- rewriteOC nodeX1 fact1
+        (!block2, fact3) <- go block1 fact2
+        (!nodeE2, !fact4) <- rewriteCO nodeE1 fact3
+        return (BlockCC nodeE2 block2 nodeX2, fact4)
 
-    cat :: (f -> UniqSM a) -> (f -> UniqSM b) -> UniqSM (a, b, f)
-    cat rew1 rew2 f1 = do
-        (a, f2) <- rew2 f1
-        (b, f3) <- rew1 f2
+    go (BlockCO node1 block1) fact1 = do
+        (!node2, !block2, !fact2) <- (rewriteCO node1 `cat` go block1) fact1
+        return (BlockCO node2 block2, fact2)
+
+    go (BlockOC block1 node1) fact1 = do
+        (!block2, !node2, !fact2) <- (go block1 `cat` rewriteOC node1) fact1
+        return (BlockOC block2 node2, fact2)
+
+    go (BCons node1 block1) fact1 = do
+        (blockFromNode, block2, !fact2) <- (rewriteOO node1 `cat` go block1) fact1
+        let !result = blockJoinOO blockFromNode block2
+        return (result, fact2)
+
+    go (BSnoc block1 node1) fact1 = do
+        (block2, blockFromNode, !fact2) <- (go block1 `cat` rewriteOO node1) fact1
+        let !result = blockJoinOO block2 blockFromNode
+        return (result, fact2)
+
+    go (BCat blockA1 blockB1) fact1 = do
+        (blockA2, blockB2, !fact2) <- (go blockA1 `cat` go blockB1) fact1
+        let !result = blockJoinOO blockA2 blockB2
+        return (result, fact2)
+
+    go (BMiddle node) fact1 = rewriteOO node fact1
+
+    go BNil fact = return (BNil, fact)
+
+    cat :: (f2 -> UniqSM (a, f3)) -> (f1 -> UniqSM (b, f2)) -> f1 -> UniqSM (a, b, f3)
+    cat rew1 rew2 = \f1 -> do
+        (b, f2) <- rew2 f1
+        (a, f3) <- rew1 f2
         return (a, b, f3)
+    {-# INLINE cat #-}
+
+    blockJoinOO BNil b = b
+    blockJoinOO b BNil = b
+    blockJoinOO (BMiddle n) b = blockCons n b
+    blockJoinOO b (BMiddle n) = blockSnoc b n
+    blockJoinOO b1 b2 = BCat b1 b2
+
+
+foldOO
+    :: forall f.
+       (CmmNode O O -> f -> UniqSM (Block CmmNode O O, f))
+    -> Block CmmNode O O
+    -> f
+    -> UniqSM (Block CmmNode O O, f)
+foldOO rewriteOO initBlock initFacts = go initBlock initFacts
+  where
+    go (BCons node1 block1) fact1 = (rewriteOO node1 `comp` go block1) fact1
+    go (BSnoc block1 node1) fact1 = (go block1 `comp` rewriteOO node1) fact1
+    go (BCat blockA1 blockB1) fact1 = (go blockA1 `comp` go blockB1) fact1
+    go (BMiddle node) fact1 = rewriteOO node fact1
+    go BNil fact = return (BNil, fact)
+
+    comp rew1 rew2 = \f1 -> do
+        (b, f2) <- rew2 f1
+        (a, !f3) <- rew1 f2
+        let !c = joinOO a b
+        return (c, f3)
+    {-# INLINE comp #-}
+
+    joinOO BNil b = b
+    joinOO b BNil = b
+    joinOO (BMiddle n) b = blockCons n b
+    joinOO b (BMiddle n) = blockSnoc b n
+    joinOO b1 b2 = BCat b1 b2
+
+
+
 
 removeDeadAssignments
     :: forall r.
