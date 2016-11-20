@@ -10,6 +10,7 @@ module CmmLive
     , cmmGlobalLiveness
     , liveLattice
     , gen_kill
+    , removeDeadAssignments
     )
 where
 
@@ -19,9 +20,12 @@ import Cmm
 import PprCmmExpr ()
 import Hoopl
 import UniqSupply
+import PprCmm ()
 
 import Maybes
 import Outputable
+
+import Debug.Trace
 
 -----------------------------------------------------------------------------
 -- Calculating what variables are live on entry to a basic block
@@ -185,19 +189,45 @@ foldOO rewriteOO initBlock initFacts = go initBlock initFacts
 
 
 
+-- FIXME: Question: Should we have a separate argument for transfer functions
+-- and for rewrites? How should they be combined? Should we run the transfer on
+-- the removed block????
 removeDeadAssignments
-    :: forall r.
-       ( UserOfRegs r (CmmNode O O)
-       , DefinerOfRegs r (CmmNode O O)
-       , UserOfRegs r (CmmNode O C)
-       , DefinerOfRegs r (CmmNode O C)
-       )
-    => CmmGraph -> UniqSM (CmmGraph, BlockEnv (CmmLive r))
-removeDeadAssignments cmmGraph =
-    rewriteBwd liveLattice rewriteFun cmmGraph emptyBlockMap
+    :: DynFlags -> CmmGraph -> UniqSM (CmmGraph, BlockEnv (CmmLive LocalReg))
+       -- ( UserOfRegs r (CmmNode O O)
+       -- , DefinerOfRegs r (CmmNode O O)
+       -- , UserOfRegs r (CmmNode O C)
+       -- , DefinerOfRegs r (CmmNode O C)
+       -- )
+    -- => DynFlags -> CmmGraph -> UniqSM (CmmGraph, BlockEnv (CmmLive r))
+removeDeadAssignments dflags cmmGraph = do
+    trace ("\n###before\n" ++ showSDocUnsafe (ppr cmmGraph) ++ "\n") $ return ()
+    (g,  f) <- rewriteBwd liveLattice rewriteCC cmmGraph emptyBlockMap
+    trace ("\n###after\n" ++ showSDocUnsafe (ppr g) ++ "\n") $ return ()
+    return (g, f)
   where
-    rewriteFun :: Block CmmNode C C -> FactBase f -> UniqSM (Block CmmNode C C, FactBase f)
-    rewriteFun = undefined
+    rewriteCC
+        :: Block CmmNode C C
+        -> FactBase (CmmLive LocalReg)
+        -> UniqSM (Block CmmNode C C, FactBase (CmmLive LocalReg))
+    rewriteCC (BlockCC eNode middle1 xNode) factBase = do
+        let facts1 = gen_kill dflags xNode $! joinOutFacts liveLattice xNode factBase
+        (middle2, !facts2) <-  foldOO rewriteNode middle1 facts1
+        return (BlockCC eNode middle2 xNode, mapSingleton (entryLabel eNode) facts2)
+
+    rewriteNode node facts1 =
+        case isDead node facts1 of
+            True -> return (BNil, facts1)
+            False -> do
+                let !facts2 = gen_kill dflags node facts1
+                return (BMiddle node, facts2)
+
+    isDead :: CmmNode O O -> (CmmLive LocalReg) -> Bool
+    isDead a@(CmmAssign (CmmLocal reg) _) live
+        | not (reg `elemRegSet` live) = trace ("### killing " ++ showSDocUnsafe (ppr a)) True
+    isDead (CmmAssign lhs (CmmReg rhs))   _ | lhs == rhs = True
+    isDead (CmmStore lhs (CmmLoad rhs _)) _ | lhs == rhs = True
+    isDead node _ = False
 
 
     -- getNode :: CmmNode O O -> f -> Maybe (CmmNode O O)

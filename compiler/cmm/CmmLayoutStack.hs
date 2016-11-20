@@ -203,7 +203,8 @@ cmmLayoutStack dflags procpoints entry_args
                    rec_stackmaps rec_high_sp blocks
 
     new_blocks' <- mapM (lowerSafeForeignCall dflags) new_blocks
-    return (ofBlockList entry new_blocks', final_stackmaps)
+    (newgraph, _) <- removeDeadAssignments dflags $! ofBlockList entry new_blocks'
+    return (newgraph, final_stackmaps)
 
 
 layout :: DynFlags
