@@ -25,7 +25,7 @@ module Hoopl.Dataflow
   , Fact, FactBase
   , getFact, mkFactBase
   , analyzeCmmFwd, analyzeCmmBwd
-  , rewrite, rewriteBwd
+  , rewriteCmm, rewriteCmmBwd
   , changedIf
   , joinOutFacts
   )
@@ -144,22 +144,22 @@ fixpointAnalysis direction lattice do_block entries blockmap = loop start
                     (updateFact join dep_blocks) (todo1, fbase1) out_facts
         in loop todo2 fbase2
 
-rewriteBwd
+rewriteCmmBwd
     :: DataflowLattice f
     -> RewriteFun Block CmmNode f
     -> CmmGraph
     -> FactBase f
     -> UniqSM (CmmGraph, FactBase f)
-rewriteBwd = rewrite Bwd
+rewriteCmmBwd = rewriteCmm Bwd
 
-rewrite
+rewriteCmm
     :: Direction
     -> DataflowLattice f
     -> RewriteFun Block CmmNode f
     -> CmmGraph
     -> FactBase f
     -> UniqSM (CmmGraph, FactBase f)
-rewrite dir lattice rwFun cmmGraph initFact = do
+rewriteCmm dir lattice rwFun cmmGraph initFact = do
     let entry = g_entry cmmGraph
         hooplGraph = g_graph cmmGraph
         blockMap1 =
@@ -199,9 +199,15 @@ fixpointRewrite direction lattice do_block entries blockmap = loop start blockma
         -> UniqSM (LabelMap (Block n C C), FactBase f)
     loop []              !blocks1 !fbase1 = return (blocks1, fbase1)
     loop (index : todo1) !blocks1 !fbase1 = do
+        -- Note that we use the *original* block here. This is one of the
+        -- essential subtleties about this algorithm - we're rewriting blocks
+        -- even before we reach the fixed point, which means that the rewrite
+        -- might have been incorrect. So if the facst change, we'll rewrite the
+        -- original block again, but with the new facts.
         let block = block_arr ! index
         (new_block, out_facts) <- {-# SCC "do_block_rewrite" #-} do_block block fbase1
-            -- FIXME: This could be conditional since we don't always rewrite blocks.
+        -- FIXME: `mapInsert` could be optional since we don't always rewrite
+        -- blocks.
         let blocks2 = mapInsert (entryLabel new_block) new_block blocks1
             (todo2, fbase2) = {-# SCC "mapFoldWithKey_rewrite" #-}
                 mapFoldWithKey
