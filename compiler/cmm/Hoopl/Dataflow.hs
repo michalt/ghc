@@ -21,11 +21,12 @@ module Hoopl.Dataflow
   ( C, O, Block
   , lastNode, entryLabel
   , foldNodesBwdOO
+  , foldRewriteNodesBwdOO
   , DataflowLattice(..), OldFact(..), NewFact(..), JoinedFact(..), TransferFun
   , Fact, FactBase
   , getFact, mkFactBase
   , analyzeCmmFwd, analyzeCmmBwd
-  , rewriteCmm, rewriteCmmBwd
+  , rewriteCmmBwd
   , changedIf
   , joinOutFacts
   )
@@ -72,14 +73,14 @@ data Direction = Fwd | Bwd
 
 type TransferFun f = CmmBlock -> FactBase f -> FactBase f
 
--- FIXME: Consider using something like RewrittenBlock to indicate whether a
--- block has been modified or not (and so avoid any updates in the map of
--- blocks).
--- data RewrittenBlock b n e x
---     = Rewritten !(b n e x)
---     | NotRewritten !(b n e x)
-
-type RewriteFun b (n :: * -> * -> *) f = (b n C C -> FactBase f -> UniqSM (b n C C, FactBase f))
+-- | Function for rewrtiting and analysis combined. To be used with
+-- @rewriteCmm@.
+--
+-- Currently set to work with @UniqSM@ monad, but we could probably abstract
+-- that away (if we do that, we might want to specialize the fixpoint algorithms
+-- to the particular monads through SPECIALIZE).
+type RewriteFun b (n :: * -> * -> *) f =
+    b n C C -> FactBase f -> UniqSM (b n C C, FactBase f)
 
 analyzeCmmBwd, analyzeCmmFwd
     :: DataflowLattice f
@@ -166,20 +167,19 @@ rewriteCmm dir lattice rwFun cmmGraph initFact = do
             case hooplGraph of
                 GMany NothingO bm NothingO -> bm
         entries = if mapNull initFact then [entry] else mapKeys initFact
-    (blockMap2, facts) <- fixpointRewrite dir lattice rwFun entries blockMap1 initFact
-    return (cmmGraph { g_graph = GMany NothingO blockMap2 NothingO }, facts)
-
+    (blockMap2, facts) <-
+        fixpointRewrite dir lattice rwFun entries blockMap1 initFact
+    return (cmmGraph {g_graph = GMany NothingO blockMap2 NothingO}, facts)
 
 fixpointRewrite
-    :: forall f n.
-       NonLocal n
-    => Direction
+    :: forall f.
+       Direction
     -> DataflowLattice f
-    -> RewriteFun Block n f
+    -> RewriteFun Block CmmNode f
     -> [Label]
-    -> LabelMap (Block n C C)
+    -> LabelMap CmmBlock
     -> FactBase f
-    -> UniqSM (LabelMap (Block n C C), FactBase f)
+    -> UniqSM (LabelMap CmmBlock, FactBase f)
 fixpointRewrite direction lattice do_block entries blockmap = loop start blockmap
   where
     -- Sorting the blocks helps to minimize the number of times we need to
@@ -193,21 +193,20 @@ fixpointRewrite direction lattice do_block entries blockmap = loop start blockma
     join       = fact_join lattice
 
     loop
-        :: IntHeap                 -- ^ Worklist, i.e., blocks to process
-        -> LabelMap (Block n C C)  -- ^ Current blocks.
-        -> FactBase f              -- ^ Current facts.
-        -> UniqSM (LabelMap (Block n C C), FactBase f)
+        :: IntHeap            -- ^ Worklist, i.e., blocks to process
+        -> LabelMap CmmBlock  -- ^ Current blocks.
+        -> FactBase f         -- ^ Current facts.
+        -> UniqSM (LabelMap CmmBlock, FactBase f)
     loop []              !blocks1 !fbase1 = return (blocks1, fbase1)
     loop (index : todo1) !blocks1 !fbase1 = do
-        -- Note that we use the *original* block here. This is one of the
-        -- essential subtleties about this algorithm - we're rewriting blocks
-        -- even before we reach the fixed point, which means that the rewrite
-        -- might have been incorrect. So if the facst change, we'll rewrite the
-        -- original block again, but with the new facts.
+        -- Note that we use the *original* block here. This is important.
+        -- We're optimistically rewriting blocks even before reaching the fixed
+        -- point, which means that the rewrite might be incorrect. So if the
+        -- facts change, we need to rewrite the original block again (taking
+        -- into account the new facts).
         let block = block_arr ! index
-        (new_block, out_facts) <- {-# SCC "do_block_rewrite" #-} do_block block fbase1
-        -- FIXME: `mapInsert` could be optional since we don't always rewrite
-        -- blocks.
+        (new_block, out_facts) <- {-# SCC "do_block_rewrite" #-}
+            do_block block fbase1
         let blocks2 = mapInsert (entryLabel new_block) new_block blocks1
             (todo2, fbase2) = {-# SCC "mapFoldWithKey_rewrite" #-}
                 mapFoldWithKey
@@ -385,6 +384,35 @@ foldNodesBwdOO funOO = go
     go (BMiddle n) f = funOO n f
     go BNil f = f
 {-# INLINABLE foldNodesBwdOO #-}
+
+foldRewriteNodesBwdOO
+    :: forall f.
+       (CmmNode O O -> f -> UniqSM (Block CmmNode O O, f))
+    -> Block CmmNode O O
+    -> f
+    -> UniqSM (Block CmmNode O O, f)
+foldRewriteNodesBwdOO rewriteOO initBlock initFacts = go initBlock initFacts
+  where
+    go (BCons node1 block1) fact1 = (rewriteOO node1 `comp` go block1) fact1
+    go (BSnoc block1 node1) fact1 = (go block1 `comp` rewriteOO node1) fact1
+    go (BCat blockA1 blockB1) fact1 = (go blockA1 `comp` go blockB1) fact1
+    go (BMiddle node) fact1 = rewriteOO node fact1
+    go BNil fact = return (BNil, fact)
+
+    comp rew1 rew2 = \f1 -> do
+        (b, f2) <- rew2 f1
+        (a, !f3) <- rew1 f2
+        let !c = joinBlocksOO a b
+        return (c, f3)
+    {-# INLINE comp #-}
+{-# INLINABLE foldRewriteNodesBwdOO #-}
+
+joinBlocksOO :: Block n O O -> Block n O O -> Block n O O
+joinBlocksOO BNil b = b
+joinBlocksOO b BNil = b
+joinBlocksOO (BMiddle n) b = blockCons n b
+joinBlocksOO b (BMiddle n) = blockSnoc b n
+joinBlocksOO b1 b2 = BCat b1 b2
 
 -- -----------------------------------------------------------------------------
 -- a Heap of Int
