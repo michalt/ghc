@@ -91,36 +91,6 @@ xferLive dflags (BlockCC eNode middle xNode) fBase =
 {-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive LocalReg) #-}
 {-# SPECIALIZE xferLive :: DynFlags -> TransferFun (CmmLive GlobalReg) #-}
 
--- foldOO
---     :: forall f.
---        (CmmNode O O -> f -> UniqSM (Block CmmNode O O, f))
---     -> Block CmmNode O O
---     -> f
---     -> UniqSM (Block CmmNode O O, f)
--- foldOO rewriteOO initBlock initFacts = go initBlock initFacts
---   where
---     go (BCons node1 block1) fact1 = (rewriteOO node1 `comp` go block1) fact1
---     go (BSnoc block1 node1) fact1 = (go block1 `comp` rewriteOO node1) fact1
---     go (BCat blockA1 blockB1) fact1 = (go blockA1 `comp` go blockB1) fact1
---     go (BMiddle node) fact1 = rewriteOO node fact1
---     go BNil fact = return (BNil, fact)
-
---     comp rew1 rew2 = \f1 -> do
---         (b, f2) <- rew2 f1
---         (a, !f3) <- rew1 f2
---         let !c = joinOO a b
---         return (c, f3)
---     {-# INLINE comp #-}
-
---     joinOO BNil b = b
---     joinOO b BNil = b
---     joinOO (BMiddle n) b = blockCons n b
---     joinOO b (BMiddle n) = blockSnoc b n
---     joinOO b1 b2 = BCat b1 b2
-
--- FIXME: Question: Should we have a separate argument for transfer functions
--- and for rewrites? How should they be combined? Should we run the transfer on
--- the removed block????
 removeDeadAssignments
     :: DynFlags -> CmmGraph -> UniqSM (CmmGraph, BlockEnv (CmmLive LocalReg))
 removeDeadAssignments dflags cmmGraph = do
@@ -129,13 +99,11 @@ removeDeadAssignments dflags cmmGraph = do
     -- trace ("\n###after\n" ++ showSDocUnsafe (ppr g) ++ "\n") $ return ()
     return (g, f)
   where
-    rewriteCC
-        :: CmmBlock
-        -> FactBase (CmmLive LocalReg)
-        -> UniqSM (CmmBlock, FactBase (CmmLive LocalReg))
+    rewriteCC :: RewriteFun (CmmLive LocalReg)
     rewriteCC (BlockCC eNode middle1 xNode) factBase = do
-        let facts1 = gen_kill dflags xNode $! joinOutFacts liveLattice xNode factBase
-        (middle2, !facts2) <-  foldRewriteNodesBwdOO rewriteNode middle1 facts1
+        let facts1 =
+                gen_kill dflags xNode $! joinOutFacts liveLattice xNode factBase
+        (middle2, !facts2) <- foldRewriteNodesBwdOO rewriteNode middle1 facts1
         return (BlockCC eNode middle2 xNode, mapSingleton (entryLabel eNode) facts2)
 
     rewriteNode node facts1 =

@@ -22,7 +22,8 @@ module Hoopl.Dataflow
   , lastNode, entryLabel
   , foldNodesBwdOO
   , foldRewriteNodesBwdOO
-  , DataflowLattice(..), OldFact(..), NewFact(..), JoinedFact(..), TransferFun
+  , DataflowLattice(..), OldFact(..), NewFact(..), JoinedFact(..)
+  , TransferFun, RewriteFun
   , Fact, FactBase
   , getFact, mkFactBase
   , analyzeCmmFwd, analyzeCmmBwd
@@ -79,8 +80,7 @@ type TransferFun f = CmmBlock -> FactBase f -> FactBase f
 -- Currently set to work with @UniqSM@ monad, but we could probably abstract
 -- that away (if we do that, we might want to specialize the fixpoint algorithms
 -- to the particular monads through SPECIALIZE).
-type RewriteFun b (n :: * -> * -> *) f =
-    b n C C -> FactBase f -> UniqSM (b n C C, FactBase f)
+type RewriteFun f = CmmBlock -> FactBase f -> UniqSM (CmmBlock, FactBase f)
 
 analyzeCmmBwd, analyzeCmmFwd
     :: DataflowLattice f
@@ -147,7 +147,7 @@ fixpointAnalysis direction lattice do_block entries blockmap = loop start
 
 rewriteCmmBwd
     :: DataflowLattice f
-    -> RewriteFun Block CmmNode f
+    -> RewriteFun f
     -> CmmGraph
     -> FactBase f
     -> UniqSM (CmmGraph, FactBase f)
@@ -156,7 +156,7 @@ rewriteCmmBwd = rewriteCmm Bwd
 rewriteCmm
     :: Direction
     -> DataflowLattice f
-    -> RewriteFun Block CmmNode f
+    -> RewriteFun f
     -> CmmGraph
     -> FactBase f
     -> UniqSM (CmmGraph, FactBase f)
@@ -175,21 +175,22 @@ fixpointRewrite
     :: forall f.
        Direction
     -> DataflowLattice f
-    -> RewriteFun Block CmmNode f
+    -> RewriteFun f
     -> [Label]
     -> LabelMap CmmBlock
     -> FactBase f
     -> UniqSM (LabelMap CmmBlock, FactBase f)
-fixpointRewrite direction lattice do_block entries blockmap = loop start blockmap
+fixpointRewrite dir lattice do_block entries blockmap = loop start blockmap
   where
     -- Sorting the blocks helps to minimize the number of times we need to
     -- process blocks. For instance, for forward analysis we want to look at
     -- blocks in reverse postorder. Also, see comments for sortBlocks.
-    blocks     = sortBlocks direction entries blockmap
+    blocks     = sortBlocks dir entries blockmap
     num_blocks = length blocks
-    block_arr  = {-# SCC "block_arr" #-} listArray (0, num_blocks - 1) blocks
-    start      = {-# SCC "start" #-} [0 .. num_blocks - 1]
-    dep_blocks = {-# SCC "dep_blocks" #-} mkDepBlocks direction blocks
+    block_arr  = {-# SCC "block_arr_rewrite" #-}
+                 listArray (0, num_blocks - 1) blocks
+    start      = {-# SCC "start_rewrite" #-} [0 .. num_blocks - 1]
+    dep_blocks = {-# SCC "dep_blocks_rewrite" #-} mkDepBlocks dir blocks
     join       = fact_join lattice
 
     loop
@@ -385,6 +386,10 @@ foldNodesBwdOO funOO = go
     go BNil f = f
 {-# INLINABLE foldNodesBwdOO #-}
 
+-- | Folds backward over all the nodes of an open-open block and allows
+-- rewriting them. The accumulator is both the block of nodes and @f@ (usually
+-- dataflow facts).
+-- Strict in both accumulated parts.
 foldRewriteNodesBwdOO
     :: forall f.
        (CmmNode O O -> f -> UniqSM (Block CmmNode O O, f))

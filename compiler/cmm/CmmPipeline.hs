@@ -16,6 +16,7 @@ import CmmProcPoint
 import CmmContFlowOpt
 import CmmLayoutStack
 import CmmSink
+import CmmLive
 import Hoopl
 
 import UniqSupply
@@ -97,6 +98,16 @@ cpsTop hsc_env proc =
                else return (g, mapEmpty)
        dump Opt_D_dump_cmm_sp "Layout Stack" g
 
+       ----------- Remove dead assignments  ------------------------------------
+       -- See Note [Remove dead assignments after stack layout]
+       -- FIXME: we could capture the local liveness and use it in sinking pass!
+       let remove graph = (removeDeadAssignments dflags graph >>= return . fst)
+       g <- {-# SCC "removeDeadAssignments" #-}
+            condPassM Opt_CmmRemoveDeadAssignments
+                      remove g
+                      Opt_D_dump_cmm_dead
+                      "Sink assignments"
+
        ----------- Sink and inline assignments  --------------------------------
        g <- {-# SCC "sink" #-} -- See Note [Sinking after stack layout]
             condPass Opt_CmmSink (cmmSink dflags) g
@@ -153,6 +164,16 @@ cpsTop hsc_env proc =
                     return g
                else return g
 
+        -- FIXME: generalize this better? inline? or maybe make it possible to
+        -- run the rewriting using Identity monad?
+        condPassM flag pass g dumpflag dumpname =
+            if gopt flag dflags
+               then do
+                    g <- runUniqSM $ pass g
+                    dump dumpflag dumpname g
+                    return g
+               else return g
+
 
         -- we don't need to split proc points for the NCG, unless
         -- tablesNextToCode is off.  The latter is because we have no
@@ -168,6 +189,30 @@ cpsTop hsc_env proc =
                   (ArchPPC, OSDarwin, pic) -> pic
                   _                        -> False
 
+-- Note [Remove dead assignments after stack layout]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- Stack layout can create a bunch of dead assignments when reloading registers
+-- at proc points. This can easily happen in situation like this:
+--    ...
+--     |
+--     A
+--    / \
+--   B   C
+--    \ /
+--     D
+--     |
+--    ...
+-- If both A and D are proc points, then we will reload all the local registers
+-- at A even though most will be reloaded at D and if neither B or C use them,
+-- they will be dead and could be removed.
+--
+-- Having a bunch of assignments like that can actually hurt compile times at
+-- -O0 since we don't run the sinking pass then and they make register
+-- allocation harder.
+-- See #7198
+
+--
 -- Note [Sinking after stack layout]
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 --

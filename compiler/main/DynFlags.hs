@@ -309,6 +309,7 @@ data DumpFlag
    | Opt_D_dump_cmm_switch
    | Opt_D_dump_cmm_proc
    | Opt_D_dump_cmm_sp
+   | Opt_D_dump_cmm_dead
    | Opt_D_dump_cmm_sink
    | Opt_D_dump_cmm_caf
    | Opt_D_dump_cmm_procmap
@@ -437,6 +438,7 @@ data GeneralFlag
    | Opt_LlvmPassVectorsInRegisters     -- Pass SIMD vectors in registers (requires a patched LLVM) (hidden flag)
    | Opt_LlvmFillUndefWithGarbage       -- Testing for undef bugs (hidden flag)
    | Opt_IrrefutableTuples
+   | Opt_CmmRemoveDeadAssignments
    | Opt_CmmSink
    | Opt_CmmElimCommonBlocks
    | Opt_OmitYields
@@ -3874,7 +3876,8 @@ impliedXFlags
 
 optLevelFlags :: [([Int], GeneralFlag)]
 optLevelFlags -- see Note [Documenting optimisation flags]
-  = [ ([0,1,2], Opt_DoLambdaEtaExpansion)
+  = [ ([0,1,2], Opt_CmmRemoveDeadAssignments)
+    , ([0,1,2], Opt_DoLambdaEtaExpansion)
     , ([0,1,2], Opt_DoEtaReduction)       -- See Note [Eta-reduction in -O0]
     , ([0,1,2], Opt_DmdTxDictSel)
     , ([0,1,2], Opt_LlvmTBAA)
