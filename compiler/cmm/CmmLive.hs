@@ -6,6 +6,7 @@
 
 module CmmLive
     ( CmmLocalLive
+    , BlockEntryLiveness
     , cmmLocalLiveness
     , cmmGlobalLiveness
     , liveLattice

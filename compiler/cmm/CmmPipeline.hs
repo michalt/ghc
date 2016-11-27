@@ -100,17 +100,18 @@ cpsTop hsc_env proc =
 
        ----------- Remove dead assignments  ------------------------------------
        -- See Note [Remove dead assignments after stack layout]
-       -- FIXME: we could capture the local liveness and use it in sinking pass!
-       let remove graph = (removeDeadAssignments dflags graph >>= return . fst)
-       g <- {-# SCC "removeDeadAssignments" #-}
-            condPassM Opt_CmmRemoveDeadAssignments
-                      remove g
-                      Opt_D_dump_cmm_dead
-                      "Sink assignments"
+       (g, maybeLiveness) <- {-# SCC "removeDeadAssignments" #-}
+            if gopt Opt_CmmRemoveDeadAssignments dflags
+               then do
+                   (g2, l) <- runUniqSM $ removeDeadAssignments dflags g
+                   dump Opt_D_dump_cmm_dead "Remove dead assignments" g2
+                   return (g2, Just l)
+               else
+                   return (g, Nothing)
 
        ----------- Sink and inline assignments  --------------------------------
        g <- {-# SCC "sink" #-} -- See Note [Sinking after stack layout]
-            condPass Opt_CmmSink (cmmSink dflags) g
+            condPass Opt_CmmSink (cmmSink dflags maybeLiveness) g
                      Opt_D_dump_cmm_sink "Sink assignments"
 
        ------------- CAF analysis ----------------------------------------------
@@ -163,17 +164,6 @@ cpsTop hsc_env proc =
                     dump dumpflag dumpname g
                     return g
                else return g
-
-        -- FIXME: generalize this better? inline? or maybe make it possible to
-        -- run the rewriting using Identity monad?
-        condPassM flag pass g dumpflag dumpname =
-            if gopt flag dflags
-               then do
-                    g <- runUniqSM $ pass g
-                    dump dumpflag dumpname g
-                    return g
-               else return g
-
 
         -- we don't need to split proc points for the NCG, unless
         -- tablesNextToCode is off.  The latter is because we have no

@@ -144,10 +144,14 @@ type Assignments = [Assignment]
   --     y = e2
   --     x = e1
 
-cmmSink :: DynFlags -> CmmGraph -> CmmGraph
-cmmSink dflags graph = ofBlockList (g_entry graph) $ sink mapEmpty $ blocks
+cmmSink
+    :: DynFlags -> Maybe (BlockEntryLiveness LocalReg) -> CmmGraph -> CmmGraph
+cmmSink dflags maybe_liveness graph =
+    ofBlockList (g_entry graph) $ sink mapEmpty $ blocks
   where
-  liveness = cmmLocalLiveness dflags graph
+  liveness = case maybe_liveness of
+                 Nothing -> cmmLocalLiveness dflags graph
+                 Just l -> l
   getLive l = mapFindWithDefault Set.empty l liveness
 
   blocks = postorderDfs graph
