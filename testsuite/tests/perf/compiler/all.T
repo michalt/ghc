@@ -152,7 +152,7 @@ test('T3294',
              # 2015-07-11 43196344 (x86/Linux, 64-bit machine) use +RTS -G1
              # 2016-04-06 28686588 (x86/Linux, 64-bit machine)
 
-           (wordsize(64), 52992688, 20)]),
+           (wordsize(64), 36515800, 20)]),
              # prev:           25753192 (amd64/Linux)
              # 29/08/2012:     37724352 (amd64/Linux)
              #  (increase due to new codegen, see #7198)
@@ -170,6 +170,7 @@ test('T3294',
              #  D757: emit Typeable instances at site of type definition
              # 2016-07-11:     54609256  (Windows) before fix for #12227
              # 2016-07-11:     52992688  (Windows) after fix for #12227
+             # 2016-11-29      36515800  amd64/Linux removeDeadAssignments
 
       compiler_stats_num_field('bytes allocated',
           [(wordsize(32), 1377050640, 5),
@@ -179,7 +180,7 @@ test('T3294',
            # 2013-11-13: 1478325844  (x86/Windows, 64bit machine)
            # 2014-01-12: 1565185140  (x86/Linux)
            # 2013-04-04: 1377050640  (x86/Windows, 64bit machine)
-           (wordsize(64), 2739731144, 5)]),
+           (wordsize(64), 2383062576, 5)]),
             # old:        1357587088 (amd64/Linux)
             # 29/08/2012: 2961778696 (amd64/Linux)
             # (^ increase due to new codegen, see #7198)
@@ -192,6 +193,7 @@ test('T3294',
             # 2014-09-10: 2709595808 (amd64/Linux) post-AMP cleanup
             # 2016-07-11: 2664479936 (Windows) before fix for #12227
             # 2016-07-11: 2739731144 (Windows) after fix for #12227 (ignoring)
+            # 2016-11-29: 2383062576 (amd64/Linux) removeDeadAssignments
       conf_3294,
 
       # Use `+RTS -G1` for more stable residency measurements. Note [residency].
@@ -501,7 +503,7 @@ test('T5321Fun',
              # 2014-09-03: 299656164     (specialisation and inlining)
              # 10/12/2014: 206406188     #  Improvements in constraint solver
              # 2016-04-06: 279922360 x86/Linux
-            (wordsize(64), 565883176, 10)])
+            (wordsize(64), 490951720, 10)])
              # prev:       585521080
              # 29/08/2012: 713385808     #  (increase due to new codegen)
              # 15/05/2013: 628341952     #  (reason for decrease unknown)
@@ -515,6 +517,7 @@ test('T5321Fun',
              #  (undefined now takes an implicit parameter and GHC -O0 does
              #  not recognize that the application is bottom)
              # 11/12/2015: 565883176     #  TypeInType (see #11196)
+             # 2016-11-29: 490951720     #  removeDeadAssignments
       ],
       compile,[''])
 
@@ -528,7 +531,7 @@ test('T5321FD',
             # 2014-07-31: 211699816 (Windows) (-11%)
             #  (due to better optCoercion, 5e7406d9, #9233)
             # 2016-04-06: 250757460 (x86/Linux)
-           (wordsize(64), 477840432, 10)])
+           (wordsize(64), 428103672, 10)])
             # prev:       418306336
             # 29/08/2012: 492905640
             #  (increase due to new codegen)
@@ -549,6 +552,7 @@ test('T5321FD',
             #  D757: emit Typeable instances at site of type definition
             # 2016-07-16: 477840432
             #  Optimize handling of built-in OccNames
+            # 2016-11-29: 428103672 (amd64/Linux) removeDeadAssignments
       ],
       compile,[''])
 
