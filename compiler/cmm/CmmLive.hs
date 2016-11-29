@@ -94,18 +94,16 @@ xferLive dflags (BlockCC eNode middle xNode) fBase =
 
 removeDeadAssignments
     :: DynFlags -> CmmGraph -> UniqSM (CmmGraph, BlockEnv (CmmLive LocalReg))
-removeDeadAssignments dflags cmmGraph = do
-    -- trace ("\n###before\n" ++ showSDocUnsafe (ppr cmmGraph) ++ "\n") $ return ()
-    (g,  f) <- rewriteCmmBwd liveLattice rewriteCC cmmGraph emptyBlockMap
-    -- trace ("\n###after\n" ++ showSDocUnsafe (ppr g) ++ "\n") $ return ()
-    return (g, f)
+removeDeadAssignments dflags cmmGraph =
+    rewriteCmmBwd liveLattice rewriteCC cmmGraph emptyBlockMap
   where
     rewriteCC :: RewriteFun (CmmLive LocalReg)
     rewriteCC (BlockCC eNode middle1 xNode) factBase = do
         let facts1 =
                 gen_kill dflags xNode $! joinOutFacts liveLattice xNode factBase
         (middle2, !facts2) <- foldRewriteNodesBwdOO rewriteNode middle1 facts1
-        return (BlockCC eNode middle2 xNode, mapSingleton (entryLabel eNode) facts2)
+        let !resultFactBase = mapSingleton (entryLabel eNode) facts2
+        return (BlockCC eNode middle2 xNode, resultFactBase)
 
     rewriteNode node facts1 =
         case isDead node facts1 of
@@ -116,7 +114,7 @@ removeDeadAssignments dflags cmmGraph = do
 
     isDead :: CmmNode O O -> (CmmLive LocalReg) -> Bool
     isDead (CmmAssign (CmmLocal reg) _) live
-        | not (reg `elemRegSet` live) = True -- trace ("### killing " ++ showSDocUnsafe (ppr a)) True
+        | not (reg `elemRegSet` live) = True
     isDead (CmmAssign lhs (CmmReg rhs))   _ | lhs == rhs = True
     isDead (CmmStore lhs (CmmLoad rhs _)) _ | lhs == rhs = True
     isDead _ _ = False
