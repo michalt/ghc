@@ -195,7 +195,7 @@ fixpointRewrite dir lattice do_block entries blockmap = loop start blockmap
 
     loop
         :: IntHeap            -- ^ Worklist, i.e., blocks to process
-        -> LabelMap CmmBlock  -- ^ Current blocks.
+        -> LabelMap CmmBlock  -- ^ Rewritten blocks.
         -> FactBase f         -- ^ Current facts.
         -> UniqSM (LabelMap CmmBlock, FactBase f)
     loop []              !blocks1 !fbase1 = return (blocks1, fbase1)
