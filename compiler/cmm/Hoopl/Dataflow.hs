@@ -409,11 +409,11 @@ foldRewriteNodesBwdOO
     -> UniqSM (Block CmmNode O O, f)
 foldRewriteNodesBwdOO rewriteOO initBlock initFacts = go initBlock initFacts
   where
-    go (BCons node1 block1) fact1 = (rewriteOO node1 `comp` go block1) fact1
-    go (BSnoc block1 node1) fact1 = (go block1 `comp` rewriteOO node1) fact1
-    go (BCat blockA1 blockB1) fact1 = (go blockA1 `comp` go blockB1) fact1
-    go (BMiddle node) fact1 = rewriteOO node fact1
-    go BNil fact = return (BNil, fact)
+    go (BCons node1 block1) !fact1 = (rewriteOO node1 `comp` go block1) fact1
+    go (BSnoc block1 node1) !fact1 = (go block1 `comp` rewriteOO node1) fact1
+    go (BCat blockA1 blockB1) !fact1 = (go blockA1 `comp` go blockB1) fact1
+    go (BMiddle node) !fact1 = rewriteOO node fact1
+    go BNil !fact = return (BNil, fact)
 
     comp rew1 rew2 = \f1 -> do
         (b, f2) <- rew2 f1
