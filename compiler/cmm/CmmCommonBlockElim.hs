@@ -215,7 +215,7 @@ hash_block dflags block =
                                 -> hash_tgt env t + hash_list (hash_e env) as
                 CmmBranch _     ->  23 -- NB. ignore the label
                 CmmCondBranch p _ _ _ -> hash_e env p
-                CmmCall e _ _ _ _ _   -> hash_e env e
+                CmmCall e _ _ _ _ _ _ -> hash_e env e
                 CmmForeignCall t _ _ _ _ _ _ -> hash_tgt env t
                 CmmSwitch e _   -> hash_e env e
                 _               -> error "hash_node: unknown Cmm node!"
@@ -394,10 +394,10 @@ eqLastWith eqBid env a b =
       (CmmBranch bid1, CmmBranch bid2) -> eqBid bid1 bid2
       (CmmCondBranch c1 t1 f1 l1, CmmCondBranch c2 t2 f2 l2) ->
           eqExprWith eqBid env c1 c2 && l1 == l2 && eqBid t1 t2 && eqBid f1 f2
-      (CmmCall t1 c1 g1 a1 r1 u1, CmmCall t2 c2 g2 a2 r2 u2) ->
+      (CmmCall t1 c1 g1 rt1 a1 r1 u1, CmmCall t2 c2 g2 rt2 a2 r2 u2) ->
              t1 == t2
           && eqMaybeWith eqBid c1 c2
-          && a1 == a2 && r1 == r2 && u1 == u2 && g1 == g2
+          && a1 == a2 && r1 == r2 && u1 == u2 && g1 == g2 && rt1 == rt2
       (CmmSwitch e1 ids1, CmmSwitch e2 ids2) ->
           eqExprWith eqBid env e1 e2 && eqSwitchTargetWith eqBid ids1 ids2
       -- result registers aren't compared since they are binding occurrences
