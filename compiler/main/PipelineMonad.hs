@@ -18,6 +18,7 @@ import DriverPhases
 import HscTypes
 import Module
 import FileCleanup (TempFileLifetime)
+import Cmm ( ManglerInfo )
 
 import Control.Monad
 
@@ -41,11 +42,13 @@ instance MonadIO CompPipeline where
     liftIO m = P $ \_env state -> do a <- m; return (state, a)
 
 data PhasePlus = RealPhase Phase
+               | RealPhaseWithInfo ManglerInfo Phase
                | HscOut HscSource ModuleName HscStatus
 
 instance Outputable PhasePlus where
     ppr (RealPhase p) = ppr p
     ppr (HscOut {}) = text "HscOut"
+    ppr (RealPhaseWithInfo _ p) = ppr p
 
 -- -----------------------------------------------------------------------------
 -- The pipeline uses a monad to carry around various bits of information

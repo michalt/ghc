@@ -7,7 +7,7 @@ module Cmm (
      CmmDecl, GenCmmDecl(..),
      CmmGraph, GenCmmGraph(..),
      CmmBlock,
-     RawCmmDecl, RawCmmGroup,
+     RawCmmDecl, RawCmmGroup, ManglerInfo,
      Section(..), SectionType(..), CmmStatics(..), CmmStatic(..),
      isSecConstant,
 
@@ -60,6 +60,7 @@ type CmmProgram = [CmmGroup]
 type GenCmmGroup d h g = [GenCmmDecl d h g]
 type CmmGroup = GenCmmGroup CmmStatics CmmTopInfo CmmGraph
 type RawCmmGroup = GenCmmGroup CmmStatics (LabelMap CmmStatics) CmmGraph
+type ManglerInfo = Maybe (LabelMap CmmStatics)
 
 -----------------------------------------------------------------------------
 --  CmmDecl, GenCmmDecl
@@ -224,4 +225,3 @@ instance Outputable instr => Outputable (GenBasicBlock instr) where
 pprBBlock :: Outputable stmt => GenBasicBlock stmt -> SDoc
 pprBBlock (BasicBlock ident stmts) =
     hang (ppr ident <> colon) 4 (vcat (map ppr stmts))
-
