@@ -1112,7 +1112,11 @@ runPhase (HscOut src_flavour mod_name result) _ dflags = do
                       mapM (uncurry (compileForeign hsc_env')) foreign_files
                     setForeignOs (maybe [] return stub_o ++ foreign_os)
 
-                    return (RealPhase next_phase, outputFilename)
+                    let kind = case next_phase of
+                                 LlvmOpt -> RealPhaseWithInfo
+                                 _       -> \ _ p -> RealPhase p
+
+                    return (kind mangInfo next_phase, outputFilename)
 
 -----------------------------------------------------------------------------
 -- Cmm phase
@@ -1450,7 +1454,7 @@ runPhase (RealPhase SplitAs) _input_fn dflags
 
 -----------------------------------------------------------------------------
 -- LlvmOpt phase
-runPhase (RealPhase LlvmOpt) input_fn dflags
+runPhase (RealPhaseWithInfo mangInfo LlvmOpt) input_fn dflags
   = do
     output_fn <- phaseOutputFilename LlvmLlc
 
@@ -1462,7 +1466,7 @@ runPhase (RealPhase LlvmOpt) input_fn dflags
                 , SysTools.FileOption "" output_fn]
                 )
 
-    return (RealPhase LlvmLlc, output_fn)
+    return (RealPhaseWithInfo mangInfo LlvmLlc, output_fn)
   where
         -- we always (unless -optlo specified) run Opt since we rely on it to
         -- fix up some pretty big deficiencies in the code we generate
@@ -1485,7 +1489,7 @@ runPhase (RealPhase LlvmOpt) input_fn dflags
 -----------------------------------------------------------------------------
 -- LlvmLlc phase
 
-runPhase (RealPhase LlvmLlc) input_fn dflags
+runPhase (RealPhaseWithInfo mangInfo LlvmLlc) input_fn dflags
   = do
     next_phase <- if fastLlvmPipeline dflags
                   then maybeMergeForeign
@@ -1506,7 +1510,15 @@ runPhase (RealPhase LlvmLlc) input_fn dflags
                    ]
                 )
 
-    return (RealPhase next_phase, output_fn)
+    let doNext = case (next_phase, mangInfo) of
+                      (LlvmMangle, i)       -> RealPhaseWithInfo i LlvmMangle
+                      (_, Just _)           -> panic ("after LLC: TNTC info was provided, "
+                                                     ++ "but -dno-llvm-mangler was given!")
+                                                     -- TODO(kavon) probably should just be 
+                                                     -- a warning since its a debug flag anyways
+                      (p, Nothing)          -> RealPhase p
+
+    return (doNext, output_fn)
   where
     -- Note [Clamping of llc optimizations]
     --
@@ -1563,12 +1575,14 @@ runPhase (RealPhase LlvmLlc) input_fn dflags
 -----------------------------------------------------------------------------
 -- LlvmMangle phase
 
-runPhase (RealPhase LlvmMangle) input_fn dflags
+runPhase (RealPhaseWithInfo (Just info) LlvmMangle) input_fn dflags
   = do
       let next_phase = if gopt Opt_SplitObjs dflags then Splitter else As False
       output_fn <- phaseOutputFilename next_phase
       liftIO $ llvmFixupAsm dflags input_fn output_fn
       return (RealPhase next_phase, output_fn)
+      
+runPhase (RealPhaseWithInfo Nothing LlvmMangle) _ _ = panic "phase LlvmMangle needs info!"
 
 -----------------------------------------------------------------------------
 -- merge in stub objects
@@ -1586,10 +1600,10 @@ runPhase (RealPhase MergeForeign) input_fn dflags
 
 -- warning suppression
 runPhase (RealPhase other) _input_fn _dflags =
-   panic ("runPhase: don't know how to run phase " ++ show other)
+   panic ("runPhase: don't know how to run phase: " ++ show other)
  
 runPhase (RealPhaseWithInfo _ other) _input_fn _dflags =
-   panic ("runPhase: don't know how to run phase (with info) " ++ show other)
+   panic ("runPhase: don't know how to run phase (with mangler info): " ++ show other)
 
 maybeMergeForeign :: CompPipeline Phase
 maybeMergeForeign
