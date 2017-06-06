@@ -18,7 +18,7 @@ import DriverPhases
 import HscTypes
 import Module
 import FileCleanup (TempFileLifetime)
-import Cmm ( ManglerInfo )
+import LlvmMangler ( ManglerInfo )
 
 import Control.Monad
 
