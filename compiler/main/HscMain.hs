@@ -142,6 +142,7 @@ import Fingerprint      ( Fingerprint )
 import Hooks
 import TcEnv
 import PrelNames
+import LlvmMangler ( ManglerInfo )
 
 import DynFlags
 import ErrUtils
