@@ -135,8 +135,8 @@ Pass 2:
 - Calculate live registers, but taking into account that nothing is live at the
   entry to a proc point.
 
-- At each proc point insert reloads of live registers from the stack (they were
-  saved by Pass 1).
+- At each proc point and call continuation insert reloads of live registers from
+  the stack (they were saved by Pass 1).
 
 
 Note [Two pass approach]

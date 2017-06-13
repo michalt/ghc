@@ -1129,7 +1129,9 @@ test('MultiLayerModules',
 test('T13701',
      [ compiler_stats_num_field('bytes allocated',
           [(platform('x86_64-apple-darwin'), 2217187888, 10),
-           (wordsize(64), 2511285600, 10),
+           (wordsize(64), 2188296032, 10),
+           # 2511285600 - initial
+           # 2188296032 - two pass CmmLayoutStack
           ]),
        pre_cmd('./genT13701'),
        extra_files(['genT13701']),
