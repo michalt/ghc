@@ -1508,6 +1508,7 @@ runPhase (RealPhaseWithInfo mangInfo LlvmLlc) input_fn dflags
                 ++ [ SysTools.FileOption "" input_fn
                    , SysTools.Option "-o"
                    , SysTools.FileOption "" output_fn
+                    SysTools.Option cpscall_workaround,
                    ]
                 )
 
@@ -1572,6 +1573,8 @@ runPhase (RealPhaseWithInfo mangInfo LlvmLlc) input_fn dflags
     defaultOptions = map SysTools.Option . concat . fmap words . snd
                    $ unzip (llvmOptions dflags)
 
+        -- TODO(kavon): temporary
+        cpscall_workaround = "-disable-machine-cse"
 
 -----------------------------------------------------------------------------
 -- LlvmMangle phase
