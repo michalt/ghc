@@ -23,6 +23,7 @@ import Cmm
 import CmmUtils
 import Hoopl.Block
 import Hoopl.Collections
+import Hoopl.Label
 import PprCmm
 
 import BufWrite
