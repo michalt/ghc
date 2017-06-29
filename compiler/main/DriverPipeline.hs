@@ -1508,8 +1508,8 @@ runPhase (RealPhaseWithInfo mangInfo LlvmLlc) input_fn dflags
                 ++ [ SysTools.FileOption "" input_fn
                    , SysTools.Option "-o"
                    , SysTools.FileOption "" output_fn
-                    SysTools.Option cpscall_workaround,
                    ]
+                ++ map SysTools.Option cpscall_workaround,
                 )
 
     let doNext = case (next_phase, mangInfo) of
@@ -1573,8 +1573,9 @@ runPhase (RealPhaseWithInfo mangInfo LlvmLlc) input_fn dflags
     defaultOptions = map SysTools.Option . concat . fmap words . snd
                    $ unzip (llvmOptions dflags)
 
-        -- TODO(kavon): temporary
-        cpscall_workaround = "-disable-machine-cse"
+    -- TODO(kavon): temporary
+    cpscall_workaround = "-disable-machine-cse"
+    cpscall_workaround = ["-disable-machine-cse", "-enable-shrink-wrap=false"]
 
 -----------------------------------------------------------------------------
 -- LlvmMangle phase
