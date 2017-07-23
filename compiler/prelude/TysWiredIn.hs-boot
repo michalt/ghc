@@ -20,7 +20,7 @@ runtimeRepTy :: Type
 
 liftedRepDataConTyCon, vecRepDataConTyCon, tupleRepDataConTyCon :: TyCon
 
-liftedRepDataConTy, unliftedRepDataConTy, intRepDataConTy,
+liftedRepDataConTy, unliftedRepDataConTy, intRepDataConTy, int8RepDataConTy,
   wordRepDataConTy, int64RepDataConTy, word64RepDataConTy, addrRepDataConTy,
   floatRepDataConTy, doubleRepDataConTy :: Type
 

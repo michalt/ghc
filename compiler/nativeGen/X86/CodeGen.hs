@@ -768,6 +768,7 @@ getRegister' _ is32Bit (CmmMachOp mop [x, y]) = do -- dyadic MachOps
 
       MO_S_MulMayOflo rep -> imulMayOflo rep x y
 
+      MO_Mul W8  -> imulSmall W8 x y
       MO_Mul rep -> triv_op rep IMUL
       MO_And rep -> triv_op rep AND
       MO_Or  rep -> triv_op rep OR
@@ -802,6 +803,21 @@ getRegister' _ is32Bit (CmmMachOp mop [x, y]) = do -- dyadic MachOps
     --------------------
     triv_op width instr = trivialCode width op (Just op) x y
                         where op   = instr (intFormat width)
+
+    imulSmall :: Width -> CmmExpr -> CmmExpr -> NatM Register
+    imulSmall rep arg_a arg_b = do
+        (a_reg, a_code) <- getNonClobberedReg arg_a
+        b_code <- getAnyReg arg_b
+
+        let
+          -- result of:
+          -- - IMULB will be in %ax
+          -- - IMULW will be in %dx:%ax
+          code = a_code `appOL` b_code eax `appOL` toOL [ IMUL2 format (OpReg a_reg) ]
+          format = intFormat rep
+
+        return (Fixed format eax code)
+
 
     imulMayOflo :: Width -> CmmExpr -> CmmExpr -> NatM Register
     imulMayOflo rep a b = do
@@ -897,6 +913,14 @@ getRegister' _ is32Bit (CmmMachOp mop [x, y]) = do -- dyadic MachOps
         return (Any format code)
 
     ----------------------
+    div_code W8 signed quotient x y = do
+        div_code
+            W16
+            signed
+            quotient
+            (CmmMachOp (MO_SS_Conv W8 W16) [x])
+            (CmmMachOp (MO_SS_Conv W8 W16) [y])
+
     div_code width signed quotient x y = do
            (y_op, y_code) <- getRegOrMem y -- cannot be clobbered
            x_code <- getAnyReg x
@@ -2180,6 +2204,30 @@ genCCall _ is32Bit target dest_regs args = do
             = divOp platform signed width results (Just arg_x_high) arg_x_low arg_y
         divOp2 _ _ _ _ _
             = panic "genCCall: Wrong number of arguments for divOp2"
+
+        -- IDIV reminder:
+        --   Size    Dividend   Divisor   Quotient    Remainder
+        --   byte    AX         r/m8      AL          AH
+        --   word    DX:AX      r/m16     AX          DX
+        --   dword   EDX:EAX    r/m32     EAX         EDX
+        --   qword   RDX:RAX    r/m64     RAX         RDX
+        --
+        -- We do a special case for the byte division because the current
+        -- codegen doesn't deal well with accessing %ah register (also,
+        -- accessing %ah in 64-bit mode is complicated because it cannot be an
+        -- operand of many instructions). So we just widen operands to 16 bits
+        -- and get the results from %al, %dl. This is not optimal, but a few
+        -- register moves are probably not a huge deal when doing division.
+        divOp platform signed W8 [res_q, res_r] m_arg_x_high arg_x_low arg_y =
+            let arg_x_low_16 = CmmMachOp (MO_SS_Conv W8 W16) [arg_x_low]
+                arg_y_16 = CmmMachOp (MO_SS_Conv W8 W16) [arg_y]
+                m_arg_x_high_16 =
+                    (\p -> CmmMachOp (MO_SS_Conv W8 W16) [p]) <$> m_arg_x_high
+            in divOp
+                  platform signed W16 [res_q, res_r]
+                  m_arg_x_high_16 arg_x_low_16 arg_y_16
+
+
         divOp platform signed width [res_q, res_r]
               m_arg_x_high arg_x_low arg_y
             = do let format = intFormat width
@@ -2199,7 +2247,7 @@ genCCall _ is32Bit target dest_regs args = do
                  return $ y_code `appOL`
                           x_low_code rax `appOL`
                           x_high_code rdx `appOL`
-                          toOL [instr format y_reg,
+                          toOL [instr format y_reg, --quot_code, rem_code]
                                 MOV format (OpReg rax) (OpReg reg_q),
                                 MOV format (OpReg rdx) (OpReg reg_r)]
         divOp _ _ _ _ _ _ _

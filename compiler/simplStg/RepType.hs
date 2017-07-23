@@ -255,6 +255,7 @@ primRepSlot VoidRep     = pprPanic "primRepSlot" (text "No slot for VoidRep")
 primRepSlot LiftedRep   = PtrSlot
 primRepSlot UnliftedRep = PtrSlot
 primRepSlot IntRep      = WordSlot
+primRepSlot Int8Rep     = WordSlot
 primRepSlot WordRep     = WordSlot
 primRepSlot Int64Rep    = Word64Slot
 primRepSlot Word64Rep   = Word64Slot

@@ -69,6 +69,7 @@ toArgRep VoidRep           = V
 toArgRep LiftedRep         = P
 toArgRep UnliftedRep       = P
 toArgRep IntRep            = N
+toArgRep Int8Rep           = N
 toArgRep WordRep           = N
 toArgRep AddrRep           = N
 toArgRep Int64Rep          = L

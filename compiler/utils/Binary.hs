@@ -652,6 +652,9 @@ instance Binary RuntimeRep where
     put_ bh AddrRep         = putByte bh 9
     put_ bh FloatRep        = putByte bh 10
     put_ bh DoubleRep       = putByte bh 11
+#if MIN_VERSION_base(4,11,0)
+    put_ bh Int8Rep         = putByte bh 12
+#endif
 
     get bh = do
         tag <- getByte bh
@@ -668,6 +671,9 @@ instance Binary RuntimeRep where
           9  -> pure AddrRep
           10 -> pure FloatRep
           11 -> pure DoubleRep
+#if MIN_VERSION_base(4,11,0)
+          12 -> pure Int8Rep
+#endif
           _  -> fail "Binary.putRuntimeRep: invalid tag"
 
 instance Binary KindRep where

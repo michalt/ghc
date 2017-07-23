@@ -111,7 +111,7 @@ module TysWiredIn (
 
         vecRepDataConTyCon, tupleRepDataConTyCon, sumRepDataConTyCon,
 
-        liftedRepDataConTy, unliftedRepDataConTy, intRepDataConTy,
+        liftedRepDataConTy, unliftedRepDataConTy, intRepDataConTy, int8RepDataConTy,
         wordRepDataConTy, int64RepDataConTy, word64RepDataConTy, addrRepDataConTy,
         floatRepDataConTy, doubleRepDataConTy,
 
@@ -411,10 +411,17 @@ sumRepDataConName = mkWiredInDataConName UserSyntax gHC_TYPES (fsLit "SumRep") s
 runtimeRepSimpleDataConNames :: [Name]
 runtimeRepSimpleDataConNames
   = zipWith3Lazy mk_special_dc_name
-      [ fsLit "LiftedRep", fsLit "UnliftedRep"
+      [ fsLit "LiftedRep"
+      , fsLit "UnliftedRep"
       , fsLit "IntRep"
-      , fsLit "WordRep", fsLit "Int64Rep", fsLit "Word64Rep"
-      , fsLit "AddrRep", fsLit "FloatRep", fsLit "DoubleRep" ]
+      , fsLit "WordRep"
+      , fsLit "Int8Rep"
+      , fsLit "Int64Rep"
+      , fsLit "Word64Rep"
+      , fsLit "AddrRep"
+      , fsLit "FloatRep"
+      , fsLit "DoubleRep"
+      ]
       runtimeRepSimpleDataConKeys
       runtimeRepSimpleDataCons
 
@@ -1148,7 +1155,7 @@ runtimeRepSimpleDataCons :: [DataCon]
 liftedRepDataCon :: DataCon
 runtimeRepSimpleDataCons@(liftedRepDataCon : _)
   = zipWithLazy mk_runtime_rep_dc
-    [ LiftedRep, UnliftedRep, IntRep, WordRep, Int64Rep
+    [ LiftedRep, UnliftedRep, IntRep, WordRep, Int8Rep, Int64Rep
     , Word64Rep, AddrRep, FloatRep, DoubleRep ]
     runtimeRepSimpleDataConNames
   where
@@ -1157,10 +1164,10 @@ runtimeRepSimpleDataCons@(liftedRepDataCon : _)
 
 -- See Note [Wiring in RuntimeRep]
 liftedRepDataConTy, unliftedRepDataConTy,
-  intRepDataConTy, wordRepDataConTy, int64RepDataConTy,
+  intRepDataConTy, int8RepDataConTy, wordRepDataConTy, int64RepDataConTy,
   word64RepDataConTy, addrRepDataConTy, floatRepDataConTy, doubleRepDataConTy :: Type
 [liftedRepDataConTy, unliftedRepDataConTy,
-   intRepDataConTy, wordRepDataConTy, int64RepDataConTy,
+   intRepDataConTy, wordRepDataConTy, int8RepDataConTy, int64RepDataConTy,
    word64RepDataConTy, addrRepDataConTy, floatRepDataConTy, doubleRepDataConTy]
   = map (mkTyConTy . promoteDataCon) runtimeRepSimpleDataCons
 
