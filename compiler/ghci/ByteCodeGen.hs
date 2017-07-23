@@ -1570,10 +1570,15 @@ pushConstrAtom d p (AnnVar v)
 pushConstrAtom d p expr = pushAtom d p expr
 
 pushPadding :: Int -> BcM (BCInstrList, ByteOff)
-pushPadding 1 = return (unitOL (PUSH_PAD8), 1)
-pushPadding 2 = return (unitOL (PUSH_PAD16), 2)
-pushPadding 4 = return (unitOL (PUSH_PAD32), 4)
-pushPadding x = panic $ "pushPadding x=" ++ show x
+pushPadding !n = return $ go n (nilOL, 0)
+  where
+    go n acc@(!instrs, !off)
+      | n == 0 = acc
+      | n == 1 = (instrs `mappend` unitOL PUSH_PAD8, off + 1)
+      | n == 2 = (instrs `mappend` unitOL PUSH_PAD16, off + 2)
+      | n == 3 = go 1 (go 2 acc)
+      | n == 4 = (instrs `mappend` unitOL PUSH_PAD32, off + 4)
+      | otherwise = go (n - 4) (go 4 acc)
 
 -- -----------------------------------------------------------------------------
 -- Given a bunch of alts code and their discrs, do the donkey work

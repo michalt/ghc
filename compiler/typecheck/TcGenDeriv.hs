@@ -1435,7 +1435,9 @@ gfoldl_RDR, gunfold_RDR, toConstr_RDR, dataTypeOf_RDR, mkConstr_RDR,
     constr_RDR, dataType_RDR,
     eqChar_RDR  , ltChar_RDR  , geChar_RDR  , gtChar_RDR  , leChar_RDR  ,
     eqInt_RDR   , ltInt_RDR   , geInt_RDR   , gtInt_RDR   , leInt_RDR   ,
+    eqInt8_RDR  , ltInt8_RDR  , geInt8_RDR  , gtInt8_RDR  , leInt8_RDR  ,
     eqWord_RDR  , ltWord_RDR  , geWord_RDR  , gtWord_RDR  , leWord_RDR  ,
+    eqWord8_RDR , ltWord8_RDR , geWord8_RDR , gtWord8_RDR , leWord8_RDR ,
     eqAddr_RDR  , ltAddr_RDR  , geAddr_RDR  , gtAddr_RDR  , leAddr_RDR  ,
     eqFloat_RDR , ltFloat_RDR , geFloat_RDR , gtFloat_RDR , leFloat_RDR ,
     eqDouble_RDR, ltDouble_RDR, geDouble_RDR, gtDouble_RDR, leDouble_RDR :: RdrName
@@ -1467,11 +1469,23 @@ leInt_RDR      = varQual_RDR  gHC_PRIM (fsLit "<=#")
 gtInt_RDR      = varQual_RDR  gHC_PRIM (fsLit ">#" )
 geInt_RDR      = varQual_RDR  gHC_PRIM (fsLit ">=#")
 
+eqInt8_RDR     = varQual_RDR  gHC_PRIM (fsLit "eqInt8#")
+ltInt8_RDR     = varQual_RDR  gHC_PRIM (fsLit "ltInt8#" )
+leInt8_RDR     = varQual_RDR  gHC_PRIM (fsLit "leInt8#")
+gtInt8_RDR     = varQual_RDR  gHC_PRIM (fsLit "gtInt8#" )
+geInt8_RDR     = varQual_RDR  gHC_PRIM (fsLit "geInt8#")
+
 eqWord_RDR     = varQual_RDR  gHC_PRIM (fsLit "eqWord#")
 ltWord_RDR     = varQual_RDR  gHC_PRIM (fsLit "ltWord#")
 leWord_RDR     = varQual_RDR  gHC_PRIM (fsLit "leWord#")
 gtWord_RDR     = varQual_RDR  gHC_PRIM (fsLit "gtWord#")
 geWord_RDR     = varQual_RDR  gHC_PRIM (fsLit "geWord#")
+
+eqWord8_RDR     = varQual_RDR  gHC_PRIM (fsLit "eqWord8#")
+ltWord8_RDR     = varQual_RDR  gHC_PRIM (fsLit "ltWord8#" )
+leWord8_RDR     = varQual_RDR  gHC_PRIM (fsLit "leWord8#")
+gtWord8_RDR     = varQual_RDR  gHC_PRIM (fsLit "gtWord8#" )
+geWord8_RDR     = varQual_RDR  gHC_PRIM (fsLit "geWord8#")
 
 eqAddr_RDR     = varQual_RDR  gHC_PRIM (fsLit "eqAddr#")
 ltAddr_RDR     = varQual_RDR  gHC_PRIM (fsLit "ltAddr#")
@@ -1962,7 +1976,9 @@ ordOpTbl :: [(Type, (RdrName, RdrName, RdrName, RdrName, RdrName))]
 ordOpTbl
  =  [(charPrimTy  , (ltChar_RDR  , leChar_RDR  , eqChar_RDR  , geChar_RDR  , gtChar_RDR  ))
     ,(intPrimTy   , (ltInt_RDR   , leInt_RDR   , eqInt_RDR   , geInt_RDR   , gtInt_RDR   ))
+    ,(int8PrimTy  , (ltInt8_RDR  , leInt8_RDR  , eqInt8_RDR  , geInt8_RDR  , gtInt8_RDR   ))
     ,(wordPrimTy  , (ltWord_RDR  , leWord_RDR  , eqWord_RDR  , geWord_RDR  , gtWord_RDR  ))
+    ,(word8PrimTy , (ltWord8_RDR , leWord8_RDR , eqWord8_RDR , geWord8_RDR , gtWord8_RDR   ))
     ,(addrPrimTy  , (ltAddr_RDR  , leAddr_RDR  , eqAddr_RDR  , geAddr_RDR  , gtAddr_RDR  ))
     ,(floatPrimTy , (ltFloat_RDR , leFloat_RDR , eqFloat_RDR , geFloat_RDR , gtFloat_RDR ))
     ,(doublePrimTy, (ltDouble_RDR, leDouble_RDR, eqDouble_RDR, geDouble_RDR, gtDouble_RDR)) ]
