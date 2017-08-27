@@ -805,7 +805,7 @@ mkConAppCode orig_d _ p con args_r_to_l =
 
             do_pushery !d (arg : args) = do
                 (push, arg_bytes) <- case arg of
-                    (Padding l) -> pushPadding l
+                    (Padding l _) -> pushPadding l
                     (FieldOff a _) -> pushConstrAtom d p (fromNonVoid a)
                 more_push_code <- do_pushery (d + arg_bytes) args
                 return (push `appOL` more_push_code)

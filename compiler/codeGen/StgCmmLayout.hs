@@ -397,6 +397,7 @@ data FieldOffOrPadding a
     = FieldOff (NonVoid a) -- Something that needs an offset.
                ByteOff     -- Offset in bytes.
     | Padding ByteOff  -- Length of padding in bytes.
+              ByteOff  -- Offset in bytes.
 
 mkVirtHeapOffsetsWithPadding
   :: DynFlags
@@ -435,7 +436,7 @@ mkVirtHeapOffsetsWithPadding dflags is_thunk things =
     tot_wds = bytesToWordsRoundUp dflags tot_bytes
 
     final_pad_size = tot_wds * word_size - tot_bytes
-    final_pad | final_pad_size > 0 = [(Padding final_pad_size)]
+    final_pad | final_pad_size > 0 = [(Padding final_pad_size tot_bytes)]
               | otherwise          = []
 
     word_size = wORD_SIZE dflags
@@ -462,7 +463,7 @@ mkVirtHeapOffsetsWithPadding dflags is_thunk things =
 
         with_padding field_off
             | padding == 0 = [field_off]
-            | otherwise    = [Padding padding, field_off]
+            | otherwise    = [Padding padding bytes_so_far, field_off]
 
 
 mkVirtHeapOffsets

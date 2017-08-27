@@ -83,7 +83,7 @@ cgTopRhsCon dflags id con args =
              nv_args_w_offsets) =
                  mkVirtHeapOffsetsWithPadding dflags is_thunk (addArgReps args)
 
-            mk_payload (Padding len) = return (CmmInt 0 (widthFromBytes len))
+            mk_payload (Padding len _) = return (CmmInt 0 (widthFromBytes len))
             mk_payload (FieldOff arg _) = do
                 CmmLit lit <- getArgAmode arg
                 return lit
