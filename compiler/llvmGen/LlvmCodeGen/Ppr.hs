@@ -43,7 +43,7 @@ pprLlvmCmmDecl :: LlvmCmmDecl -> LlvmM (SDoc, [LlvmVar])
 pprLlvmCmmDecl (CmmData _ lmdata)
   = return (vcat $ map pprLlvmData lmdata, [])
 
-pprLlvmCmmDecl (CmmProc mb_info entry_lbl live (ListGraph blks))
+pprLlvmCmmDecl (CmmProc (mb_info, rets) entry_lbl live (ListGraph blks))
   = do let lbl = case mb_info of
                      Nothing                   -> entry_lbl
                      Just (Statics info_lbl _) -> info_lbl
@@ -53,7 +53,7 @@ pprLlvmCmmDecl (CmmProc mb_info entry_lbl live (ListGraph blks))
            lmblocks = map (\(BasicBlock id stmts) ->
                                 LlvmBlock (getUnique id) stmts) blks
 
-       funDec <- llvmFunSig live lbl link
+       funDec <- llvmFunSig live rets lbl link
        dflags <- getDynFlags
        let buildArg = fsLit . showSDoc dflags . ppPlainName
            funArgs = map buildArg (llvmFunArgs dflags live)
