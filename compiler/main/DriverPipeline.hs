@@ -1573,9 +1573,13 @@ runPhase (RealPhaseWithInfo mangInfo LlvmLlc) input_fn dflags
     defaultOptions = map SysTools.Option . concat . fmap words . snd
                    $ unzip (llvmOptions dflags)
 
-    -- TODO(kavon): temporary
-    cpscall_workaround = "-disable-machine-cse"
-    cpscall_workaround = ["-disable-machine-cse", "-enable-shrink-wrap=false"]
+    -- TODO(kavon): These workarounds are temporary until I fix them in LLVM.
+    --
+    --  * Disabling CSE and LICM are related to constants spills (ghc-llvm issue #11)
+    --  * Disabling shrink wrapping is related to inserting prologues at each return point
+    --    for stack alignment purposes.
+    --  * Disabling jump-table switches is discussed in ghc-llvm issue #20.
+    cpscall_workaround = ["-disable-machine-cse", "-disable-machine-licm", "-enable-shrink-wrap=false", "-min-jump-table-entries=1000"]
 
 -----------------------------------------------------------------------------
 -- LlvmMangle phase
