@@ -144,6 +144,15 @@ disInstr ( StgBCO *bco, int pc )
          debugBelch("PUSH_ALTS_V  " ); printPtr( ptrs[instrs[pc]] );
          debugBelch("\n");
          pc += 1; break;
+      case bci_PUSH_PAD8:
+         debugBelch("PUSH_PAD8\n");
+         pc += 1; break;
+      case bci_PUSH_PAD16:
+         debugBelch("PUSH_PAD16\n");
+         pc += 1; break;
+      case bci_PUSH_PAD32:
+         debugBelch("PUSH_PAD32\n");
+         pc += 1; break;
       case bci_PUSH_UBX8:
          debugBelch(
              "PUSH_UBX8 0x%" FMT_Word8 " ",

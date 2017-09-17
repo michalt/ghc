@@ -1355,6 +1355,24 @@ run_BCO:
             Sp_subW(1); SpW(0) = (W_)&stg_ap_pppppp_info;
             goto nextInsn;
 
+        case bci_PUSH_PAD8: {
+            Sp_subB(1);
+            *(StgWord8*)Sp = 0;
+            goto nextInsn;
+        }
+
+        case bci_PUSH_PAD16: {
+            Sp_subB(2);
+            *(StgWord16*)Sp = 0;
+            goto nextInsn;
+        }
+
+        case bci_PUSH_PAD32: {
+            Sp_subB(4);
+            *(StgWord32*)Sp = 0;
+            goto nextInsn;
+        }
+
         case bci_PUSH_UBX8: {
             int o_lit = BCO_GET_LARGE_ARG;
             Sp_subB(1);

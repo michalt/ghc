@@ -1563,9 +1563,9 @@ pushConstrAtom d p (AnnVar v)
 pushConstrAtom d p expr = pushAtom d p expr
 
 pushPadding :: Int -> BcM (BCInstrList, ByteOff)
-pushPadding 1 = return (unitOL (PUSH_UBX8 $ mkDummyLiteral WordRep), 1)
-pushPadding 2 = return (unitOL (PUSH_UBX16 $ mkDummyLiteral WordRep), 2)
-pushPadding 4 = return (unitOL (PUSH_UBX32 $ mkDummyLiteral WordRep), 4)
+pushPadding 1 = return (unitOL (PUSH_PAD8), 1)
+pushPadding 2 = return (unitOL (PUSH_PAD16), 2)
+pushPadding 4 = return (unitOL (PUSH_PAD32), 4)
 pushPadding x = panic $ "pushPadding x=" ++ show x
 
 -- -----------------------------------------------------------------------------

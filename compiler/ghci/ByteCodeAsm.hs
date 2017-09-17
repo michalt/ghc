@@ -369,6 +369,9 @@ assembleI dflags i = case i of
                            -> do let ul_bco = assembleBCO dflags proto
                                  p <- ioptr (liftM BCOPtrBCO ul_bco)
                                  emit (push_alts pk) [Op p]
+  PUSH_PAD8                -> emit bci_PUSH_PAD8 []
+  PUSH_PAD16               -> emit bci_PUSH_PAD16 []
+  PUSH_PAD32               -> emit bci_PUSH_PAD32 []
   PUSH_UBX8 lit            -> do np <- literal lit
                                  emit bci_PUSH_UBX8 [Op np]
   PUSH_UBX16 lit           -> do np <- literal lit

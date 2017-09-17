@@ -86,6 +86,11 @@ data BCInstr
    | PUSH_ALTS          (ProtoBCO Name)
    | PUSH_ALTS_UNLIFTED (ProtoBCO Name) ArgRep
 
+   -- Pushing 8, 16 and 32 bits of padding (for constructors).
+   | PUSH_PAD8
+   | PUSH_PAD16
+   | PUSH_PAD32
+
    -- Pushing literals
    | PUSH_UBX8  Literal
    | PUSH_UBX16 Literal
@@ -225,6 +230,10 @@ instance Outputable BCInstr where
    ppr (PUSH_ALTS bco)       = hang (text "PUSH_ALTS") 2 (ppr bco)
    ppr (PUSH_ALTS_UNLIFTED bco pk) = hang (text "PUSH_ALTS_UNLIFTED" <+> ppr pk) 2 (ppr bco)
 
+   ppr PUSH_PAD8             = text "PUSH_PAD8"
+   ppr PUSH_PAD16            = text "PUSH_PAD16"
+   ppr PUSH_PAD32            = text "PUSH_PAD32"
+
    ppr (PUSH_UBX8  lit)      = text "PUSH_UBX8" <+> ppr lit
    ppr (PUSH_UBX16 lit)      = text "PUSH_UBX16" <+> ppr lit
    ppr (PUSH_UBX32 lit)      = text "PUSH_UBX32" <+> ppr lit
@@ -307,6 +316,9 @@ bciStackUse PUSH_PRIMOP{}         = 1
 bciStackUse PUSH_BCO{}            = 1
 bciStackUse (PUSH_ALTS bco)       = 2 + protoBCOStackUse bco
 bciStackUse (PUSH_ALTS_UNLIFTED bco _) = 2 + protoBCOStackUse bco
+bciStackUse (PUSH_PAD8)           = 1
+bciStackUse (PUSH_PAD16)          = 1
+bciStackUse (PUSH_PAD32)          = 1
 bciStackUse (PUSH_UBX8 _)         = 1
 bciStackUse (PUSH_UBX16 _)        = 1
 bciStackUse (PUSH_UBX32 _)        = 1
