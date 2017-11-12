@@ -21,7 +21,7 @@ module MkGraph
   )
 where
 
-import GhcPrelude (($),Int,Bool,Eq(..)) -- avoid importing (<*>)
+import GhcPrelude ((<),($),Int,Bool,Eq(..),otherwise) -- avoid importing (<*>)
 
 import BlockId
 import Cmm
@@ -37,6 +37,7 @@ import ForeignCall
 import OrdList
 import SMRep (ByteOff)
 import UniqSupply
+import Panic
 
 import Control.Monad
 import Data.List
@@ -317,7 +318,17 @@ copyIn dflags conv area formals extra_stk
   = (stk_size, [r | (_, RegisterParam r) <- args], map ci (stk_args ++ args))
   where
      ci (reg, RegisterParam r) =
-          CmmAssign (CmmLocal reg) (CmmReg (CmmGlobal r))
+         let local = CmmLocal reg
+             global = CmmReg (CmmGlobal r)
+             width = cmmRegWidth dflags local
+             expr
+                 | width == wordWidth dflags = global
+                 | width < wordWidth dflags =
+                     CmmMachOp (MO_UU_Conv (wordWidth dflags) width) [global]
+                 | otherwise = panic "Parameter width greater than word width"
+
+         in CmmAssign local expr
+
      ci (reg, StackParam off) =
           CmmAssign (CmmLocal reg) (CmmLoad (CmmStackSlot area off) ty)
           where ty = localRegType reg
@@ -353,8 +364,16 @@ copyOutOflow dflags conv transfer area actuals updfr_off extra_stack_stuff
   where
     (regs, graph) = foldr co ([], mkNop) (setRA ++ args ++ stack_params)
 
-    co (v, RegisterParam r) (rs, ms)
-       = (r:rs, mkAssign (CmmGlobal r) v <*> ms)
+    co (v, RegisterParam r) (rs, ms) =
+        let width = cmmExprWidth dflags v
+            value
+                | width == wordWidth dflags = v
+                | width < wordWidth dflags =
+                    CmmMachOp (MO_UU_Conv width (wordWidth dflags)) [v]
+                | otherwise = panic "Parameter width greater than word width"
+
+        in (r:rs, mkAssign (CmmGlobal r) value <*> ms)
+
     co (v, StackParam off)  (rs, ms)
        = (rs, mkStore (CmmStackSlot area off) v <*> ms)
 

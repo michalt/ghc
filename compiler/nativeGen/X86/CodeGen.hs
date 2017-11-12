@@ -2247,7 +2247,7 @@ genCCall _ is32Bit target dest_regs args = do
                  return $ y_code `appOL`
                           x_low_code rax `appOL`
                           x_high_code rdx `appOL`
-                          toOL [instr format y_reg, --quot_code, rem_code]
+                          toOL [instr format y_reg,
                                 MOV format (OpReg rax) (OpReg reg_q),
                                 MOV format (OpReg rdx) (OpReg reg_r)]
         divOp _ _ _ _ _ _ _

@@ -14,3 +14,4 @@ test('T10678',
      compile_and_run, ['-O'])
 test('T11296', normal, compile_and_run, [''])
 test('T13825-compile', normal, compile_and_run, [''])
+test('Int8Prim', normal, compile_and_run, [''])
