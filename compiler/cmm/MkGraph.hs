@@ -317,7 +317,7 @@ copyIn :: DynFlags -> Convention -> Area
 copyIn dflags conv area formals extra_stk
   = (stk_size, [r | (_, RegisterParam r) <- args], map ci (stk_args ++ args))
   where
-     ci (reg, RegisterParam r) =
+     ci (reg, RegisterParam r@(VanillaReg {})) =
          let local = CmmLocal reg
              global = CmmReg (CmmGlobal r)
              width = cmmRegWidth dflags local
@@ -328,6 +328,10 @@ copyIn dflags conv area formals extra_stk
                  | otherwise = panic "Parameter width greater than word width"
 
          in CmmAssign local expr
+
+     -- Non VanillaRegs
+     ci (reg, RegisterParam r) =
+         CmmAssign (CmmLocal reg) (CmmReg (CmmGlobal r))
 
      ci (reg, StackParam off) =
           CmmAssign (CmmLocal reg) (CmmLoad (CmmStackSlot area off) ty)
@@ -364,7 +368,7 @@ copyOutOflow dflags conv transfer area actuals updfr_off extra_stack_stuff
   where
     (regs, graph) = foldr co ([], mkNop) (setRA ++ args ++ stack_params)
 
-    co (v, RegisterParam r) (rs, ms) =
+    co (v, RegisterParam r@(VanillaReg {})) (rs, ms) =
         let width = cmmExprWidth dflags v
             value
                 | width == wordWidth dflags = v
@@ -373,6 +377,10 @@ copyOutOflow dflags conv transfer area actuals updfr_off extra_stack_stuff
                 | otherwise = panic "Parameter width greater than word width"
 
         in (r:rs, mkAssign (CmmGlobal r) value <*> ms)
+
+    -- Non VanillaRegs
+    co (v, RegisterParam r) (rs, ms) =
+        (r:rs, mkAssign (CmmGlobal r) v <*> ms)
 
     co (v, StackParam off)  (rs, ms)
        = (rs, mkStore (CmmStackSlot area off) v <*> ms)
