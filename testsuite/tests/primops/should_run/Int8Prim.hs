@@ -124,10 +124,11 @@ main = do
     --
     -- remInt8#
     --
-    let input = [ (a, b) | a <- allInt8, b <- allInt8
-                -- Don't divide by 0 or cause overflow
-                , b /= 0, not (a == -128 && b == -1)
-                ]
+    let input =
+            [ (a, b) | a <- allInt8, b <- allInt8
+            -- Don't divide by 0 or cause overflow
+            , b /= 0, not (a == -128 && b == -1)
+            ]
         expected = [ toInt8 (a `rem` b) | (a, b) <- input ]
         actual = [ apply2 remInt8# a b | (a, b) <- input ]
     checkResults "remInt8#" input expected actual
@@ -135,9 +136,10 @@ main = do
     --
     -- quotInt8#
     --
-    let input = [ (a, b) | a <- allInt8, b <- allInt8
-                , b /= 0, not (a == -128 && b == -1)
-                ]
+    let input =
+            [ (a, b) | a <- allInt8, b <- allInt8
+            , b /= 0, not (a == -128 && b == -1)
+            ]
         expected = [ toInt8 (a `quot` b) | (a, b) <- input ]
         actual = [ apply2 quotInt8# a b | (a, b) <- input ]
     checkResults "quotInt8#" input expected actual
@@ -145,12 +147,14 @@ main = do
     --
     -- quotRemInt8#
     --
-    let input = [ (a, b) | a <- allInt8, b <- allInt8
-                , b /= 0, not (a == -128 && b == -1)
-                ]
-        expected = [ (toInt8 q, toInt8 r)  | (a, b) <- input
-                   , let (q, r) = a `quotRem` b
-                   ]
+    let input =
+            [ (a, b) | a <- allInt8, b <- allInt8
+            , b /= 0, not (a == -128 && b == -1)
+            ]
+        expected =
+            [ (toInt8 q, toInt8 r)  | (a, b) <- input
+            , let (q, r) = a `quotRem` b
+            ]
         actual = [ apply3 quotRemInt8# a b | (a, b) <- input ]
     checkResults "quotRemInt8#" input expected actual
 
