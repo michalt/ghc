@@ -2026,7 +2026,7 @@ runtimeRepSimpleDataConKeys :: [Unique]
 liftedRepDataConKey :: Unique
 runtimeRepSimpleDataConKeys@(
   liftedRepDataConKey : _)
-  = map mkPreludeDataConUnique $ [74..83]
+  = map mkPreludeDataConUnique [74..83]
 
 -- See Note [Wiring in RuntimeRep] in TysWiredIn
 -- VecCount

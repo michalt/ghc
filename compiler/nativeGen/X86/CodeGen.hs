@@ -768,7 +768,7 @@ getRegister' _ is32Bit (CmmMachOp mop [x, y]) = do -- dyadic MachOps
 
       MO_S_MulMayOflo rep -> imulMayOflo rep x y
 
-      MO_Mul W8  -> imulSmall W8 x y
+      MO_Mul W8  -> imulW8 x y
       MO_Mul rep -> triv_op rep IMUL
       MO_And rep -> triv_op rep AND
       MO_Or  rep -> triv_op rep OR
@@ -804,17 +804,18 @@ getRegister' _ is32Bit (CmmMachOp mop [x, y]) = do -- dyadic MachOps
     triv_op width instr = trivialCode width op (Just op) x y
                         where op   = instr (intFormat width)
 
-    imulSmall :: Width -> CmmExpr -> CmmExpr -> NatM Register
-    imulSmall rep arg_a arg_b = do
+    -- Special case for IMUL for bytes, since the result of IMULB will be in
+    -- %ax, the split to %dx/%edx/%rdx and %ax/%eax/%rax happens only for wider
+    -- values.
+    imulW8 :: CmmExpr -> CmmExpr -> NatM Register
+    imulW8 arg_a arg_b = do
         (a_reg, a_code) <- getNonClobberedReg arg_a
         b_code <- getAnyReg arg_b
 
         let
-          -- result of:
-          -- - IMULB will be in %ax
-          -- - IMULW will be in %dx:%ax
-          code = a_code `appOL` b_code eax `appOL` toOL [ IMUL2 format (OpReg a_reg) ]
-          format = intFormat rep
+          code = a_code `appOL` b_code eax `appOL`
+                 toOL [ IMUL2 format (OpReg a_reg) ]
+          format = intFormat W8
 
         return (Fixed format eax code)
 

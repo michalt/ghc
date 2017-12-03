@@ -239,7 +239,6 @@ pprReg f r
       (case i of {
          0 -> sLit "%al";     1 -> sLit "%bl";
          2 -> sLit "%cl";     3 -> sLit "%dl";
-         40 -> sLit "%ah";
         _  -> sLit $ "very naughty I386 byte register: " ++ show i
       })
 
@@ -277,7 +276,6 @@ pprReg f r
         10 -> sLit "%r10b";   11 -> sLit "%r11b";
         12 -> sLit "%r12b";   13 -> sLit "%r13b";
         14 -> sLit "%r14b";   15 -> sLit "%r15b";
-        40 -> sLit "%ah";
         _  -> sLit $ "very naughty x86_64 byte register: " ++ show i
       })
 
