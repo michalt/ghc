@@ -359,8 +359,10 @@ section "Word8#"
 
 primtype Word8#
 
-primop Word8ToInt "word8ToWord#"  GenPrimOp  Word8# -> Word#
-primop IntToWord8 "wordToWord8#"  GenPrimOp  Word# -> Word8#
+primop Word8ToWord "word8ToWord#"  GenPrimOp  Word8# -> Word#
+primop WordToWord8 "wordToWord8#"  GenPrimOp  Word# -> Word8#
+
+primop   Word8NotOp   "notWord8#"   Monadic   Word8# -> Word8#
 
 primop Word8AddOp "plusWord8#"  Dyadic  Word8# -> Word8# -> Word8#
   with

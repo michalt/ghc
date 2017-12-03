@@ -915,12 +915,14 @@ getRegister' _ is32Bit (CmmMachOp mop [x, y]) = do -- dyadic MachOps
 
     ----------------------
     div_code W8 signed quotient x y = do
+        let widen | signed    = MO_SS_Conv W8 W16
+                  | otherwise = MO_UU_Conv W8 W16
         div_code
             W16
             signed
             quotient
-            (CmmMachOp (MO_SS_Conv W8 W16) [x])
-            (CmmMachOp (MO_SS_Conv W8 W16) [y])
+            (CmmMachOp widen [x])
+            (CmmMachOp widen [y])
 
     div_code width signed quotient x y = do
            (y_op, y_code) <- getRegOrMem y -- cannot be clobbered
@@ -2220,10 +2222,11 @@ genCCall _ is32Bit target dest_regs args = do
         -- and get the results from %al, %dl. This is not optimal, but a few
         -- register moves are probably not a huge deal when doing division.
         divOp platform signed W8 [res_q, res_r] m_arg_x_high arg_x_low arg_y =
-            let arg_x_low_16 = CmmMachOp (MO_SS_Conv W8 W16) [arg_x_low]
-                arg_y_16 = CmmMachOp (MO_SS_Conv W8 W16) [arg_y]
-                m_arg_x_high_16 =
-                    (\p -> CmmMachOp (MO_SS_Conv W8 W16) [p]) <$> m_arg_x_high
+            let widen | signed = MO_SS_Conv W8 W16
+                      | otherwise = MO_UU_Conv W8 W16
+                arg_x_low_16 = CmmMachOp widen [arg_x_low]
+                arg_y_16 = CmmMachOp widen [arg_y]
+                m_arg_x_high_16 = (\p -> CmmMachOp widen [p]) <$> m_arg_x_high
             in divOp
                   platform signed W16 [res_q, res_r]
                   m_arg_x_high_16 arg_x_low_16 arg_y_16

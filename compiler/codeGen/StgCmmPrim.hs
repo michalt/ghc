@@ -835,6 +835,9 @@ callishPrimOpSupported dflags op
                           || llvm     -> Left (MO_U_QuotRem2 (wordWidth dflags))
                      | otherwise      -> Right (genericWordQuotRem2Op dflags)
 
+      Word8QuotRemOp | ncg && x86ish -> Left (MO_U_QuotRem W8)
+                     | otherwise     -> Right (genericIntQuotRemOp W8)
+
       WordAdd2Op     | (ncg && (x86ish
                                 || ppc))
                          || llvm      -> Left (MO_Add2       (wordWidth dflags))
@@ -1215,6 +1218,17 @@ translateOp _      Int8SubOp      = Just (MO_Sub W8)
 translateOp _      Int8MulOp      = Just (MO_Mul W8)
 translateOp _      Int8QuotOp     = Just (MO_S_Quot W8)
 translateOp _      Int8RemOp      = Just (MO_S_Rem W8)
+
+-- Word8# unsigned ops
+
+translateOp dflags Word8ToWord     = Just (MO_UU_Conv W8 (wordWidth dflags))
+translateOp dflags WordToWord8     = Just (MO_UU_Conv (wordWidth dflags) W8)
+translateOp _      Word8NotOp      = Just (MO_Not W8)
+translateOp _      Word8AddOp      = Just (MO_Add W8)
+translateOp _      Word8SubOp      = Just (MO_Sub W8)
+translateOp _      Word8MulOp      = Just (MO_Mul W8)
+translateOp _      Word8QuotOp     = Just (MO_U_Quot W8)
+translateOp _      Word8RemOp      = Just (MO_U_Rem W8)
 
 -- Char# ops
 

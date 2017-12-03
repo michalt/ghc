@@ -615,8 +615,9 @@ runtimeRepTypeRep r =
                      `kApp` buildList (map runtimeRepTypeRep rs)
       IntRep      -> rep @'IntRep
       Int8Rep     -> rep @'Int8Rep
-      WordRep     -> rep @'WordRep
       Int64Rep    -> rep @'Int64Rep
+      WordRep     -> rep @'WordRep
+      Word8Rep    -> rep @'Word8Rep
       Word64Rep   -> rep @'Word64Rep
       AddrRep     -> rep @'AddrRep
       FloatRep    -> rep @'FloatRep

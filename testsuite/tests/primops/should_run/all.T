@@ -15,3 +15,4 @@ test('T10678',
 test('T11296', normal, compile_and_run, [''])
 test('T13825-compile', normal, compile_and_run, [''])
 test('Int8Prim', normal, compile_and_run, [''])
+test('Word8Prim', normal, compile_and_run, [''])
