@@ -112,7 +112,8 @@ module TysWiredIn (
         vecRepDataConTyCon, tupleRepDataConTyCon, sumRepDataConTyCon,
 
         liftedRepDataConTy, unliftedRepDataConTy, intRepDataConTy, int8RepDataConTy,
-        wordRepDataConTy, int64RepDataConTy, word64RepDataConTy, addrRepDataConTy,
+        wordRepDataConTy, int64RepDataConTy, word8RepDataConTy, word64RepDataConTy,
+        addrRepDataConTy,
         floatRepDataConTy, doubleRepDataConTy,
 
         vec2DataConTy, vec4DataConTy, vec8DataConTy, vec16DataConTy, vec32DataConTy,
@@ -417,6 +418,7 @@ runtimeRepSimpleDataConNames
       , fsLit "WordRep"
       , fsLit "Int8Rep"
       , fsLit "Int64Rep"
+      , fsLit "Word8Rep"
       , fsLit "Word64Rep"
       , fsLit "AddrRep"
       , fsLit "FloatRep"
@@ -1156,7 +1158,7 @@ liftedRepDataCon :: DataCon
 runtimeRepSimpleDataCons@(liftedRepDataCon : _)
   = zipWithLazy mk_runtime_rep_dc
     [ LiftedRep, UnliftedRep, IntRep, WordRep, Int8Rep, Int64Rep
-    , Word64Rep, AddrRep, FloatRep, DoubleRep ]
+    , Word8Rep, Word64Rep, AddrRep, FloatRep, DoubleRep ]
     runtimeRepSimpleDataConNames
   where
     mk_runtime_rep_dc primrep name
@@ -1168,7 +1170,8 @@ liftedRepDataConTy, unliftedRepDataConTy,
   word64RepDataConTy, addrRepDataConTy, floatRepDataConTy, doubleRepDataConTy :: Type
 [liftedRepDataConTy, unliftedRepDataConTy,
    intRepDataConTy, wordRepDataConTy, int8RepDataConTy, int64RepDataConTy,
-   word64RepDataConTy, addrRepDataConTy, floatRepDataConTy, doubleRepDataConTy]
+   word8RepDataConTy, word64RepDataConTy,
+   addrRepDataConTy, floatRepDataConTy, doubleRepDataConTy]
   = map (mkTyConTy . promoteDataCon) runtimeRepSimpleDataCons
 
 vecCountTyCon :: TyCon

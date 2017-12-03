@@ -352,7 +352,37 @@ primop Int8QuotRemOp "quotRemInt8#"  GenPrimOp  Int8# -> Int8# -> (# Int8#, Int8
   with
     can_fail = True
 
+------------------------------------------------------------------------
+section "Word8#"
+        {Operations on 8-bit unsigned integers.}
+------------------------------------------------------------------------
 
+primtype Word8#
+
+primop Word8ToInt "word8ToWord#"  GenPrimOp  Word8# -> Word#
+primop IntToWord8 "wordToWord8#"  GenPrimOp  Word# -> Word8#
+
+primop Word8AddOp "plusWord8#"  Dyadic  Word8# -> Word8# -> Word8#
+  with
+    commutable = True
+
+primop Word8SubOp "subWord8#"    Dyadic  Word8# -> Word8# -> Word8#
+
+primop Word8MulOp "timesWord8#"  Dyadic  Word8# -> Word8# -> Word8#
+  with
+    commutable = True
+
+primop Word8QuotOp "quotWord8#"  Dyadic  Word8# -> Word8# -> Word8#
+  with
+    can_fail = True
+
+primop Word8RemOp "remWord8#"  Dyadic  Word8# -> Word8# -> Word8#
+  with
+    can_fail = True
+
+primop Word8QuotRemOp "quotRemWord8#"  GenPrimOp  Word8# -> Word8# -> (# Word8#, Word8# #)
+  with
+    can_fail = True
 
 ------------------------------------------------------------------------
 section "Word#"

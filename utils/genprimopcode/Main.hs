@@ -791,6 +791,7 @@ ppType (TyApp (TyCon "Bool")        []) = "boolTy"
 
 ppType (TyApp (TyCon "Int#")        []) = "intPrimTy"
 ppType (TyApp (TyCon "Int8#")       []) = "int8PrimTy"
+ppType (TyApp (TyCon "Word8#")      []) = "word8PrimTy"
 ppType (TyApp (TyCon "Int32#")      []) = "int32PrimTy"
 ppType (TyApp (TyCon "Int64#")      []) = "int64PrimTy"
 ppType (TyApp (TyCon "Char#")       []) = "charPrimTy"
