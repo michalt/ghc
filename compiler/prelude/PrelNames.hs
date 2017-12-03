@@ -1707,8 +1707,9 @@ mutableArrayArrayPrimTyConKey           = mkPreludeTyConUnique 42
 
 statePrimTyConKey, stableNamePrimTyConKey, stableNameTyConKey,
     mutVarPrimTyConKey, ioTyConKey,
-    wordPrimTyConKey, wordTyConKey, word8TyConKey, word16TyConKey,
-    word32PrimTyConKey, word32TyConKey, word64PrimTyConKey, word64TyConKey,
+    wordPrimTyConKey, wordTyConKey, word8PrimTyConKey, word8TyConKey,
+    word16TyConKey, word32PrimTyConKey, word32TyConKey,
+    word64PrimTyConKey, word64TyConKey,
     liftedConKey, unliftedConKey, anyBoxConKey, kindConKey, boxityConKey,
     typeConKey, threadIdPrimTyConKey, bcoPrimTyConKey, ptrTyConKey,
     funPtrTyConKey, tVarPrimTyConKey, eqPrimTyConKey,
