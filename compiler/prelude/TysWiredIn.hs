@@ -1167,7 +1167,8 @@ runtimeRepSimpleDataCons@(liftedRepDataCon : _)
 -- See Note [Wiring in RuntimeRep]
 liftedRepDataConTy, unliftedRepDataConTy,
   intRepDataConTy, int8RepDataConTy, wordRepDataConTy, int64RepDataConTy,
-  word64RepDataConTy, addrRepDataConTy, floatRepDataConTy, doubleRepDataConTy :: Type
+  word8RepDataConTy, word64RepDataConTy, addrRepDataConTy,
+  floatRepDataConTy, doubleRepDataConTy :: Type
 [liftedRepDataConTy, unliftedRepDataConTy,
    intRepDataConTy, wordRepDataConTy, int8RepDataConTy, int64RepDataConTy,
    word8RepDataConTy, word64RepDataConTy,
