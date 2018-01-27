@@ -23,7 +23,6 @@ import qualified Data.ByteString.Char8 as B
 import System.IO
 import Hoopl.Label
 import Hoopl.Collections
-import Hoopl.Unique ( intToUnique )
 import Data.Maybe ( fromMaybe )
 
 -- note [mangler string func]
@@ -85,7 +84,7 @@ addInfoTable :: LabelMap ManglerStr -> LabRewrite
 addInfoTable info FirstLabel dflags line = do
         retPt <- B.stripPrefix labPrefix line
         (i, _) <- B.readInt retPt
-        statics <- mapLookup (toKey i) info
+        statics <- mapLookup (mkHooplLabel i) info
         fullName <- B.stripSuffix colon line
         return $ B.concat $ (map (\f -> f fullName) statics) ++ [line]
     where
@@ -96,10 +95,9 @@ addInfoTable info FirstLabel dflags line = do
         labPrefix = case platformOS (targetPlatform dflags) of
                         OSDarwin -> B.pack "L" 
                         OSLinux  -> B.pack ".L"
-                        otherwise -> panic "Please update LLVM Mangler for this OS."
+                        _ -> panic "Please update LLVM Mangler for this OS."
                         
         colon = B.pack ":"
-        toKey = uniqueToLbl . intToUnique
         
 addInfoTable _ _ _ _ = Nothing
         
@@ -112,13 +110,14 @@ rewriteLine dflags labRewrites rewrites l state
   -- llvm from generating .subsections_via_symbols, which in turn with
   -- -dead_strip, strips the info tables, and therefore breaks ghc.
   | isSubsectionsViaSymbols l =
-    = withState (B.pack "## no .subsection_via_symbols for ghc. We need our info tables!")
+    withState (B.pack "## no .subsection_via_symbols for ghc. We need our info tables!")
   | otherwise =
       withState $
         case (maybNewSym, maybNewRest) of
             (Nothing, Nothing) -> l -- avoid concat
             (newS, newR)       -> cat (fromMaybe symbol newS) (fromMaybe rest newR)
   where
+    isSubsectionsViaSymbols = B.isPrefixOf (B.pack ".subsections_via_symbols")
     
     -- the transition function of the state machine
     withState l = (l, curState)

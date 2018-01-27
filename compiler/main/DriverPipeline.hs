@@ -1509,7 +1509,7 @@ runPhase (RealPhaseWithInfo mangInfo LlvmLlc) input_fn dflags
                    , SysTools.Option "-o"
                    , SysTools.FileOption "" output_fn
                    ]
-                ++ map SysTools.Option cpscall_workaround,
+                ++ map SysTools.Option cpscall_workaround
                 )
 
     let doNext = case (next_phase, mangInfo) of
