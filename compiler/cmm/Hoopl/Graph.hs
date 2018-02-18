@@ -212,13 +212,14 @@ instance LabelsPtr l => LabelsPtr [l] where
 postorder_dfs_from_except2 :: forall block . (NonLocal block)
                           => LabelMap (block C C) -> Label -> [block C C]
 postorder_dfs_from_except2 blocks b =
- b' : vchildren starting_blocks (\acc _visited -> acc) [] setEmpty
+ b' : vchildren starting_blocks (\acc _visited -> acc) [] visited
  -- vchildren starting_blocks (\acc _visited -> acc) [] visited
  where
    starting_blocks = get_children b'
    b' = case mapLookup b blocks of
            Just l -> l
            Nothing -> error $ "Could not find entry block?! " ++ show b
+   visited = setSingleton b
    -- visited = setFromList (map entryLabel starting_blocks)
 
    vnode :: block C C -> ([block C C] -> LabelSet -> a) -> [block C C] -> LabelSet -> a
