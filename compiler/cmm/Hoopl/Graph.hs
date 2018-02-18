@@ -15,6 +15,7 @@ module Hoopl.Graph
     , mapGraph
     , mapGraphBlocks
     , postorder_dfs_from
+    -- , postorder_dfs_from2
     ) where
 
 
@@ -172,11 +173,52 @@ instance LabelsPtr l => LabelsPtr [l] where
 -- one doesn't want to try and maintain both forward and backward
 -- versions.)
 
-postorder_dfs_from_except :: forall block e . (NonLocal block, LabelsPtr e)
-                          => LabelMap (block C C) -> e -> [block C C]
-postorder_dfs_from_except blocks b =
- vchildren (get_children b) (\acc _visited -> acc) [] setEmpty
+-- postorder_dfs_from_except :: forall block e . (NonLocal block, LabelsPtr e)
+--                           => LabelMap (block C C) -> e -> [block C C]
+-- postorder_dfs_from_except blocks b =
+--  -- vchildren starting_blocks (\acc _visited -> acc) starting_blocks visited
+--  vchildren starting_blocks (\acc _visited -> acc) [] visited
+--  where
+--    starting_blocks = get_children b
+--    visited = setEmpty
+--    -- visited = setFromList (map entryLabel starting_blocks)
+
+--    vnode :: block C C -> ([block C C] -> LabelSet -> a) -> [block C C] -> LabelSet -> a
+--    vnode block cont acc visited =
+--         if setMember id visited then
+--             cont acc visited
+--         else
+--             let cont' acc visited = cont (block:acc) visited in
+--             vchildren (get_children block) cont' acc (setInsert id visited)
+--       where id = entryLabel block
+--    vchildren :: forall a. [block C C] -> ([block C C] -> LabelSet -> a) -> [block C C] -> LabelSet -> a
+--    vchildren bs cont acc visited = next bs acc visited
+--       where next children acc visited =
+--                 case children of []     -> cont acc visited
+--                                  (b:bs) -> vnode b (next bs) acc visited
+--    get_children :: forall l. LabelsPtr l => l -> [block C C]
+--    get_children block = foldr add_id [] $ targetLabels block
+--    add_id id rst = case lookupFact id blocks of
+--                       Just b -> b : rst
+--                       Nothing -> rst
+
+-- postorder_dfs_from
+--     :: (NonLocal block, LabelsPtr b) => LabelMap (block C C) -> b -> [block C C]
+-- postorder_dfs_from blocks b = postorder_dfs_from_except blocks b
+
+
+postorder_dfs_from_except2 :: forall block . (NonLocal block)
+                          => LabelMap (block C C) -> Label -> [block C C]
+postorder_dfs_from_except2 blocks b =
+ b' : vchildren starting_blocks (\acc _visited -> acc) [] setEmpty
+ -- vchildren starting_blocks (\acc _visited -> acc) [] visited
  where
+   starting_blocks = get_children b'
+   b' = case mapLookup b blocks of
+           Just l -> l
+           Nothing -> error $ "Could not find entry block?! " ++ show b
+   -- visited = setFromList (map entryLabel starting_blocks)
+
    vnode :: block C C -> ([block C C] -> LabelSet -> a) -> [block C C] -> LabelSet -> a
    vnode block cont acc visited =
         if setMember id visited then
@@ -197,5 +239,5 @@ postorder_dfs_from_except blocks b =
                       Nothing -> rst
 
 postorder_dfs_from
-    :: (NonLocal block, LabelsPtr b) => LabelMap (block C C) -> b -> [block C C]
-postorder_dfs_from blocks b = postorder_dfs_from_except blocks b
+    :: (NonLocal block) => LabelMap (block C C) -> Label -> [block C C]
+postorder_dfs_from blocks label = postorder_dfs_from_except2 blocks label

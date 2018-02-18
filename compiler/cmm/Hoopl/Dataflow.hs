@@ -111,7 +111,7 @@ analyzeCmm dir lattice transfer cmmGraph initFact =
         blockMap =
             case hooplGraph of
                 GMany NothingO bm NothingO -> bm
-        entries = if mapNull initFact then [entry] else mapKeys initFact
+        entries = [entry] -- if mapNull initFact then [entry] else mapKeys initFact
     in fixpointAnalysis dir lattice transfer entries blockMap initFact
 
 -- Fixpoint algorithm.
@@ -174,7 +174,7 @@ rewriteCmm dir lattice rwFun cmmGraph initFact = do
         blockMap1 =
             case hooplGraph of
                 GMany NothingO bm NothingO -> bm
-        entries = if mapNull initFact then [entry] else mapKeys initFact
+        entries = [entry] -- if mapNull initFact then [entry] else mapKeys initFact
     (blockMap2, facts) <-
         fixpointRewrite dir lattice rwFun entries blockMap1 initFact
     return (cmmGraph {g_graph = GMany NothingO blockMap2 NothingO}, facts)
@@ -276,12 +276,12 @@ we'll propagate (x=4) to L4, and nuke the otherwise-good rewriting of L4.
 sortBlocks
     :: NonLocal n
     => Direction -> [Label] -> LabelMap (Block n C C) -> [Block n C C]
-sortBlocks direction entries blockmap =
+sortBlocks direction [entry] blockmap =
     case direction of
         Fwd -> fwd
         Bwd -> reverse fwd
   where
-    fwd = postorder_dfs_from blockmap entries
+    fwd = postorder_dfs_from blockmap entry
 
 -- Note [Backward vs forward analysis]
 --
