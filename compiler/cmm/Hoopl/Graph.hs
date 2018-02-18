@@ -25,6 +25,8 @@ import Hoopl.Label
 import Hoopl.Block
 import Hoopl.Collections
 
+import Util
+
 -- | A (possibly empty) collection of closed/closed blocks
 type Body n = LabelMap (Block n C C)
 
@@ -52,7 +54,7 @@ emptyBody = mapEmpty
 bodyList :: Body' block n -> [(Label,block n C C)]
 bodyList body = mapToList body
 
-addBlock :: NonLocal thing
+addBlock :: (HasCallStack,  NonLocal thing)
          => thing C C -> LabelMap (thing C C)
          -> LabelMap (thing C C)
 addBlock b body

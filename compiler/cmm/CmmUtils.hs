@@ -532,7 +532,7 @@ toBlockListEntryFirstFalseFallthrough g
                               Just b  -> b : bs
                               Nothing -> bs
 
-ofBlockList :: BlockId -> [CmmBlock] -> CmmGraph
+ofBlockList :: HasCallStack => BlockId -> [CmmBlock] -> CmmGraph
 ofBlockList entry blocks = CmmGraph { g_entry = entry
                                     , g_graph = GMany NothingO body NothingO }
   where body = foldr addBlock emptyBody blocks
