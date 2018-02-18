@@ -173,9 +173,9 @@ instance LabelsPtr l => LabelsPtr [l] where
 -- versions.)
 
 postorder_dfs_from_except :: forall block e . (NonLocal block, LabelsPtr e)
-                          => LabelMap (block C C) -> e -> LabelSet -> [block C C]
-postorder_dfs_from_except blocks b visited =
- vchildren (get_children b) (\acc _visited -> acc) [] visited
+                          => LabelMap (block C C) -> e -> [block C C]
+postorder_dfs_from_except blocks b =
+ vchildren (get_children b) (\acc _visited -> acc) [] setEmpty
  where
    vnode :: block C C -> ([block C C] -> LabelSet -> a) -> [block C C] -> LabelSet -> a
    vnode block cont acc visited =
@@ -198,4 +198,4 @@ postorder_dfs_from_except blocks b visited =
 
 postorder_dfs_from
     :: (NonLocal block, LabelsPtr b) => LabelMap (block C C) -> b -> [block C C]
-postorder_dfs_from blocks b = postorder_dfs_from_except blocks b setEmpty
+postorder_dfs_from blocks b = postorder_dfs_from_except blocks b
