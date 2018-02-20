@@ -127,8 +127,9 @@ cpsTop hsc_env proc =
                    setInsert (fromMaybe bid (mapLookup bid cbe_subst)) set
              let !new_call_pps = setFoldl cbe_fix setEmpty call_pps
              let !new_proc_points
-                   | splitting_proc_points = call_pps
-                   | otherwise = setFoldl cbe_fix setEmpty proc_points
+                   | splitting_proc_points =
+                       setFoldl cbe_fix setEmpty proc_points
+                   | otherwise = new_call_pps
 
              return (g, new_call_pps, new_proc_points)
 
