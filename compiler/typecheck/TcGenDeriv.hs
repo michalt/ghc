@@ -1192,14 +1192,25 @@ gen_Show_binds get_fixity loc tycon
              show_arg b arg_ty
                | isUnliftedType arg_ty
                -- See Note [Deriving and unboxed types] in TcDeriv
-               = nlHsApps compose_RDR [mk_shows_app boxed_arg,
-                                       mk_showString_app postfixMod]
+               = add_conv $
+                    nlHsApps compose_RDR
+                        [ mk_shows_app boxed_arg
+                        , mk_showString_app postfixMod
+                        ]
                | otherwise
                = mk_showsPrec_app arg_prec arg
                  where
                    arg        = nlHsVar b
                    boxed_arg  = box "Show" tycon arg arg_ty
                    postfixMod = assoc_ty_id "Show" tycon postfixModTbl arg_ty
+                   add_conv expr
+                     | (Just conv) <- assoc_ty_id_maybe primConvTbl arg_ty =
+                         nested_compose_Expr
+                             [ mk_showString_app ("(" ++ conv ++ " ")
+                             , expr
+                             , mk_showString_app ")"
+                             ]
+                     | otherwise = expr
 
                 -- Fixity stuff
              is_infix = dataConIsInfix data_con
@@ -1440,7 +1451,9 @@ gfoldl_RDR, gunfold_RDR, toConstr_RDR, dataTypeOf_RDR, mkConstr_RDR,
     eqWord8_RDR , ltWord8_RDR , geWord8_RDR , gtWord8_RDR , leWord8_RDR ,
     eqAddr_RDR  , ltAddr_RDR  , geAddr_RDR  , gtAddr_RDR  , leAddr_RDR  ,
     eqFloat_RDR , ltFloat_RDR , geFloat_RDR , gtFloat_RDR , leFloat_RDR ,
-    eqDouble_RDR, ltDouble_RDR, geDouble_RDR, gtDouble_RDR, leDouble_RDR :: RdrName
+    eqDouble_RDR, ltDouble_RDR, geDouble_RDR, gtDouble_RDR, leDouble_RDR,
+    word8Extend_RDR, word8Narrow_RDR, int8Extend_RDR, int8Narrow_RDR :: RdrName
+
 gfoldl_RDR     = varQual_RDR  gENERICS (fsLit "gfoldl")
 gunfold_RDR    = varQual_RDR  gENERICS (fsLit "gunfold")
 toConstr_RDR   = varQual_RDR  gENERICS (fsLit "toConstr")
@@ -1504,6 +1517,11 @@ ltDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit "<##" )
 leDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit "<=##")
 gtDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit ">##" )
 geDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit ">=##")
+
+word8Extend_RDR = varQual_RDR  gHC_PRIM (fsLit "word8ToWord#")
+word8Narrow_RDR = varQual_RDR  gHC_PRIM (fsLit "wordToWord8#" )
+int8Extend_RDR  = varQual_RDR  gHC_PRIM (fsLit "int8ToInt#")
+int8Narrow_RDR  = varQual_RDR  gHC_PRIM (fsLit "intToInt8#" )
 
 {-
 ************************************************************************
@@ -1946,7 +1964,7 @@ box ::         String           -- The class involved
             -> Type             -- The argument type
             -> LHsExpr GhcPs    -- Boxed version of the arg
 -- See Note [Deriving and unboxed types] in TcDeriv
-box cls_str tycon arg arg_ty = nlHsApp (nlHsVar box_con) arg
+box cls_str tycon arg arg_ty = box_con arg
   where
     box_con = assoc_ty_id cls_str tycon boxConTbl arg_ty
 
@@ -1965,11 +1983,11 @@ primLitOps :: String -- The class involved
               , LHsExpr GhcPs -> LHsExpr GhcPs -- Constructs a boxed value
               )
 primLitOps str tycon ty = ( assoc_ty_id str tycon litConTbl ty
-                          , \v -> nlHsVar boxRDR `nlHsApp` v
+                          , box_fun
                           )
   where
-    boxRDR
-      | ty `eqType` addrPrimTy = unpackCString_RDR
+    box_fun
+      | ty `eqType` addrPrimTy = \v -> nlHsVar unpackCString_RDR `nlHsApp` v
       | otherwise = assoc_ty_id str tycon boxConTbl ty
 
 ordOpTbl :: [(Type, (RdrName, RdrName, RdrName, RdrName, RdrName))]
@@ -1983,13 +2001,19 @@ ordOpTbl
     ,(floatPrimTy , (ltFloat_RDR , leFloat_RDR , eqFloat_RDR , geFloat_RDR , gtFloat_RDR ))
     ,(doublePrimTy, (ltDouble_RDR, leDouble_RDR, eqDouble_RDR, geDouble_RDR, gtDouble_RDR)) ]
 
-boxConTbl :: [(Type, RdrName)]
-boxConTbl
-  = [(charPrimTy  , getRdrName charDataCon  )
-    ,(intPrimTy   , getRdrName intDataCon   )
-    ,(wordPrimTy  , getRdrName wordDataCon  )
-    ,(floatPrimTy , getRdrName floatDataCon )
-    ,(doublePrimTy, getRdrName doubleDataCon)
+boxConTbl :: [(Type, LHsExpr GhcPs -> LHsExpr GhcPs)]
+boxConTbl =
+    [ (charPrimTy  , nlHsApp (nlHsVar $ getRdrName charDataCon))
+    , (intPrimTy   , nlHsApp (nlHsVar $ getRdrName intDataCon))
+    , (wordPrimTy  , nlHsApp (nlHsVar $ getRdrName wordDataCon ))
+    , (floatPrimTy , nlHsApp (nlHsVar $ getRdrName floatDataCon ))
+    , (doublePrimTy, nlHsApp (nlHsVar $ getRdrName doubleDataCon))
+    , (int8PrimTy,
+        nlHsApp (nlHsVar $ getRdrName intDataCon)
+        . nlHsApp (nlHsVar int8Extend_RDR))
+    , (word8PrimTy,
+        nlHsApp (nlHsVar $ getRdrName wordDataCon)
+        .  nlHsApp (nlHsVar word8Extend_RDR))
     ]
 
 -- | A table of postfix modifiers for unboxed values.
@@ -2000,6 +2024,14 @@ postfixModTbl
     ,(wordPrimTy  , "##")
     ,(floatPrimTy , "#" )
     ,(doublePrimTy, "##")
+    ,(int8PrimTy, "#")
+    ,(word8PrimTy, "##")
+    ]
+
+primConvTbl :: [(Type, String)]
+primConvTbl =
+    [ (int8PrimTy, "intToInt8#")
+    , (word8PrimTy, "wordToWord8#")
     ]
 
 litConTbl :: [(Type, LHsExpr GhcPs -> LHsExpr GhcPs)]
@@ -2032,6 +2064,17 @@ assoc_ty_id cls_str _ tbl ty
   | null res = pprPanic "Error in deriving:" (text "Can't derive" <+> text cls_str <+>
                                               text "for primitive type" <+> ppr ty)
   | otherwise = head res
+  where
+    res = [id | (ty',id) <- tbl, ty `eqType` ty']
+
+-- | Lookup `Type` in an association list.
+assoc_ty_id_maybe
+    :: [(Type, a)]  -- The table
+    -> Type         -- The type
+    -> Maybe a      -- The result of the lookup
+assoc_ty_id_maybe tbl ty
+    | null res = Nothing
+    | otherwise = Just $ head res
   where
     res = [id | (ty',id) <- tbl, ty `eqType` ty']
 
