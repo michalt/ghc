@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, GADTs, UnboxedTuples #-}
+{-# LANGUAGE GADTs, UnboxedTuples #-}
 
 -----------------------------------------------------------------------------
 --
@@ -58,8 +58,6 @@ module StgCmmMonad (
         CgInfoDownwards(..), CgState(..)        -- non-abstract
     ) where
 
-#include "HsVersions.h"
-
 import GhcPrelude hiding( sequence, succ )
 
 import Cmm
@@ -77,6 +75,7 @@ import OrdList
 import BasicTypes( ConTagZ )
 import Unique
 import UniqSupply
+import Util
 import FastString
 import Outputable
 
@@ -696,11 +695,9 @@ emitLabel id = do tscope <- getTickScope
                   emitCgStmt (CgLabel id tscope)
 
 emitComment :: FastString -> FCode ()
-#if 0 /* def DEBUG */
-emitComment s = emitCgStmt (CgStmt (CmmComment s))
-#else
-emitComment _ = return ()
-#endif
+emitComment s
+  | debugIsOn = emitCgStmt (CgStmt (CmmComment s))
+  | otherwise = pure ()
 
 emitTick :: CmmTickish -> FCode ()
 emitTick = emitCgStmt . CgStmt . CmmTick
