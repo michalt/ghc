@@ -805,7 +805,7 @@ mkConAppCode orig_d _ p con args_r_to_l =
 
             do_pushery !d (arg : args) = do
                 (push, arg_bytes) <- case arg of
-                    (Padding l _) -> pushPadding l
+                    (Padding l _) -> return $! pushPadding l
                     (FieldOff a _) -> pushConstrAtom d p (fromNonVoid a)
                 more_push_code <- do_pushery (d + arg_bytes) args
                 return (push `appOL` more_push_code)
@@ -1569,16 +1569,16 @@ pushConstrAtom d p (AnnVar v)
 
 pushConstrAtom d p expr = pushAtom d p expr
 
-pushPadding :: Int -> BcM (BCInstrList, ByteOff)
-pushPadding !n = return $ go n (nilOL, 0)
+pushPadding :: Int -> (BCInstrList, ByteOff)
+pushPadding !n = go n (nilOL, 0)
   where
-    go n acc@(!instrs, !off)
-      | n == 0 = acc
-      | n == 1 = (instrs `mappend` unitOL PUSH_PAD8, off + 1)
-      | n == 2 = (instrs `mappend` unitOL PUSH_PAD16, off + 2)
-      | n == 3 = go 1 (go 2 acc)
-      | n == 4 = (instrs `mappend` unitOL PUSH_PAD32, off + 4)
-      | otherwise = go (n - 4) (go 4 acc)
+    go n acc@(!instrs, !off) = case n of
+        0 -> acc
+        1 -> (instrs `mappend` unitOL PUSH_PAD8, off + 1)
+        2 -> (instrs `mappend` unitOL PUSH_PAD16, off + 2)
+        3 -> go 1 (go 2 acc)
+        4 -> (instrs `mappend` unitOL PUSH_PAD32, off + 4)
+        _ -> go (n - 4) (go 4 acc)
 
 -- -----------------------------------------------------------------------------
 -- Given a bunch of alts code and their discrs, do the donkey work
