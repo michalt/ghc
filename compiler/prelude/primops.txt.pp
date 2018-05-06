@@ -326,8 +326,8 @@ section "Int8#"
 
 primtype Int8#
 
-primop Int8ToInt "int8ToInt#" GenPrimOp Int8# -> Int#
-primop IntToInt8 "intToInt8#" GenPrimOp Int# -> Int8#
+primop Int8ToInt "extendInt8#" GenPrimOp Int8# -> Int#
+primop IntToInt8 "narrowInt8#" GenPrimOp Int# -> Int8#
 
 primop Int8NegOp "negateInt8#" Monadic Int8# -> Int8#
 
@@ -367,8 +367,8 @@ section "Word8#"
 
 primtype Word8#
 
-primop Word8ToWord "word8ToWord#" GenPrimOp Word8# -> Word#
-primop WordToWord8 "wordToWord8#" GenPrimOp Word# -> Word8#
+primop Word8ToWord "extendWord8#" GenPrimOp Word8# -> Word#
+primop WordToWord8 "narrowWord8#" GenPrimOp Word# -> Word8#
 
 primop Word8NotOp "notWord8#" Monadic Word8# -> Word8#
 
