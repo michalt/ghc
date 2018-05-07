@@ -1456,7 +1456,6 @@ gfoldl_RDR, gunfold_RDR, toConstr_RDR, dataTypeOf_RDR, mkConstr_RDR,
     eqFloat_RDR , ltFloat_RDR , geFloat_RDR , gtFloat_RDR , leFloat_RDR ,
     eqDouble_RDR, ltDouble_RDR, geDouble_RDR, gtDouble_RDR, leDouble_RDR,
     extendWord8_RDR, extendInt8_RDR :: RdrName
-    -- extendWord8_RDR, narrowWord8_RDR, extendInt8_RDR, narrowInt8_RDR :: RdrName
 gfoldl_RDR     = varQual_RDR  gENERICS (fsLit "gfoldl")
 gunfold_RDR    = varQual_RDR  gENERICS (fsLit "gunfold")
 toConstr_RDR   = varQual_RDR  gENERICS (fsLit "toConstr")
@@ -1522,9 +1521,7 @@ gtDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit ">##" )
 geDouble_RDR   = varQual_RDR  gHC_PRIM (fsLit ">=##")
 
 extendWord8_RDR = varQual_RDR  gHC_PRIM (fsLit "extendWord8#")
--- narrowWord8_RDR = varQual_RDR  gHC_PRIM (fsLit "narrowWord8#" )
 extendInt8_RDR  = varQual_RDR  gHC_PRIM (fsLit "extendInt8#")
--- narrowInt8_RDR  = varQual_RDR  gHC_PRIM (fsLit "narrowInt8#" )
 
 
 {-
