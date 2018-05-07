@@ -159,7 +159,6 @@ addMany (I# a) (I# b) (I# c) (I# d)
                 (narrowInt8# m) (narrowInt8# n) (narrowInt8# o) (narrowInt8# p)
 {-# NOINLINE addMany #-}
 
-
 -- Convenient and also tests higher order functions on Int8#
 apply1 :: (Int8# -> Int8#) -> Int -> Int
 apply1 opToTest (I# a) = I# (extendInt8# (opToTest (narrowInt8# a)))

@@ -175,7 +175,6 @@ apply3 opToTest (W# a) (W# b) =
     in (W# (extendWord8# ra), W# (extendWord8# rb))
 {-# NOINLINE apply3 #-}
 
-
 instance
         (Eq a, Eq b, Eq c, Eq d, Eq e, Eq f, Eq g, Eq h,
          Eq i, Eq j, Eq k, Eq l, Eq m, Eq n, Eq o, Eq p)
