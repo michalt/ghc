@@ -2165,10 +2165,7 @@ assoc_ty_id cls_str tbl ty
            text "for primitive type" <+> ppr ty)
 
 -- | Lookup `Type` in an association list.
-assoc_ty_id_maybe
-    :: [(Type, a)]  -- The table
-    -> Type         -- The type
-    -> Maybe a      -- The result of the lookup
+assoc_ty_id_maybe :: [(Type, a)] -> Type -> Maybe a
 assoc_ty_id_maybe tbl ty = snd <$> find (\(t, _) -> t `eqType` ty) tbl
 
 -----------------------------------------------------------------------
