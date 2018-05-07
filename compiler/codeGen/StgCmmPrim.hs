@@ -1332,8 +1332,8 @@ translateOp dflags AddrLtOp       = Just (mo_wordULt dflags)
 
 -- Int8# signed ops
 
-translateOp dflags Int8ToInt      = Just (MO_SS_Conv W8 (wordWidth dflags))
-translateOp dflags IntToInt8      = Just (MO_SS_Conv (wordWidth dflags) W8)
+translateOp dflags Int8Extend     = Just (MO_SS_Conv W8 (wordWidth dflags))
+translateOp dflags Int8Narrow     = Just (MO_SS_Conv (wordWidth dflags) W8)
 translateOp _      Int8NegOp      = Just (MO_S_Neg W8)
 translateOp _      Int8AddOp      = Just (MO_Add W8)
 translateOp _      Int8SubOp      = Just (MO_Sub W8)
@@ -1350,8 +1350,8 @@ translateOp _      Int8NeOp       = Just (MO_Ne W8)
 
 -- Word8# unsigned ops
 
-translateOp dflags Word8ToWord     = Just (MO_UU_Conv W8 (wordWidth dflags))
-translateOp dflags WordToWord8     = Just (MO_UU_Conv (wordWidth dflags) W8)
+translateOp dflags Word8Extend     = Just (MO_UU_Conv W8 (wordWidth dflags))
+translateOp dflags Word8Narrow     = Just (MO_UU_Conv (wordWidth dflags) W8)
 translateOp _      Word8NotOp      = Just (MO_Not W8)
 translateOp _      Word8AddOp      = Just (MO_Add W8)
 translateOp _      Word8SubOp      = Just (MO_Sub W8)
