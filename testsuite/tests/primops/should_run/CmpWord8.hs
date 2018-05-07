@@ -20,7 +20,7 @@ mkT8 (W# a) = T8 (narrowWord8# a)
 
 main :: IO ()
 main = do
-    let input = [ (a, b) | a <- someWord8s, b <- someWord8s ]
+    let input = [ (a, b) | a <- allWord8, b <- allWord8 ]
 
     --
     -- (==)
@@ -74,13 +74,8 @@ checkResults test inputs expected actual =
               ++ " expected: " ++ show (expected !! i)
               ++ " but got: " ++ show (actual !! i)
 
-someWord8s :: [Word]
-someWord8s = go minWord8 maxWord8
-  where
-    go !a !b
-      | a >= 127 || b <= 127 = [127]
-      | otherwise = a : b : go (a + step) (b - step)
-    step = 7
+allWord8 :: [Word]
+allWord8 = [ minWord8 .. maxWord8 ]
 
 minWord8 :: Word
 minWord8 = fromIntegral (minBound :: Word8)
