@@ -229,7 +229,7 @@ layoutUbxSum sum_slots0 arg_slots0 =
 --
 --   - Void slots: Shared between void types. Not used in sums.
 --
--- TODO(michalt): We should probably intorduce `SlotTy`s for 8-/16-/32-bit
+-- TODO(michalt): We should probably introduce `SlotTy`s for 8-/16-/32-bit
 -- values, so that we can pack things more tightly.
 data SlotTy = PtrSlot | WordSlot | Word64Slot | FloatSlot | DoubleSlot
   deriving (Eq, Ord)
