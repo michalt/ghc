@@ -889,23 +889,27 @@ type GenericOp = [CmmFormal] -> [CmmActual] -> FCode ()
 callishPrimOpSupported :: DynFlags -> PrimOp -> Either CallishMachOp GenericOp
 callishPrimOpSupported dflags op
   = case op of
-      IntQuotRemOp   | ncg && (x86ish
-                              || ppc) -> Left (MO_S_QuotRem  (wordWidth dflags))
-                     | otherwise      -> Right (genericIntQuotRemOp (wordWidth dflags))
+      IntQuotRemOp   | ncg && (x86ish || ppc) ->
+                         Left (MO_S_QuotRem  (wordWidth dflags))
+                     | otherwise              ->
+                         Right (genericIntQuotRemOp (wordWidth dflags))
 
-      Int8QuotRemOp  | ncg && x86ish -> Left (MO_S_QuotRem W8)
+      Int8QuotRemOp  | (ncg && x86ish)
+                        || llvm      -> Left (MO_S_QuotRem W8)
                      | otherwise     -> Right (genericIntQuotRemOp W8)
 
-      WordQuotRemOp  | ncg && (x86ish
-                              || ppc) -> Left (MO_U_QuotRem  (wordWidth dflags))
-                     | otherwise      -> Right (genericWordQuotRemOp (wordWidth dflags))
+      WordQuotRemOp  | ncg && (x86ish || ppc) ->
+                         Left (MO_U_QuotRem  (wordWidth dflags))
+                     | otherwise      ->
+                         Right (genericWordQuotRemOp (wordWidth dflags))
 
       WordQuotRem2Op | (ncg && (x86ish
                                 || ppc))
                           || llvm     -> Left (MO_U_QuotRem2 (wordWidth dflags))
                      | otherwise      -> Right (genericWordQuotRem2Op dflags)
 
-      Word8QuotRemOp | ncg && x86ish -> Left (MO_U_QuotRem W8)
+      Word8QuotRemOp | (ncg && x86ish)
+                        || llvm      -> Left (MO_U_QuotRem W8)
                      | otherwise     -> Right (genericWordQuotRemOp W8)
 
       WordAdd2Op     | (ncg && (x86ish
