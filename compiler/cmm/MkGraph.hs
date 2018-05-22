@@ -318,7 +318,7 @@ copyIn dflags conv area formals extra_stk
             expr
                 | width == wordWidth dflags = global
                 | width < wordWidth dflags =
-                    CmmMachOp (MO_UU_Conv (wordWidth dflags) width) [global]
+                    CmmMachOp (MO_XX_Conv (wordWidth dflags) width) [global]
                 | otherwise = panic "Parameter width greater than word width"
 
         in CmmAssign local expr
@@ -368,7 +368,7 @@ copyOutOflow dflags conv transfer area actuals updfr_off extra_stack_stuff
             value
                 | width == wordWidth dflags = v
                 | width < wordWidth dflags =
-                    CmmMachOp (MO_UU_Conv width (wordWidth dflags)) [v]
+                    CmmMachOp (MO_XX_Conv width (wordWidth dflags)) [v]
                 | otherwise = panic "Parameter width greater than word width"
 
         in (r:rs, mkAssign (CmmGlobal r) value <*> ms)

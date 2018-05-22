@@ -644,20 +644,27 @@ getRegister' dflags is32Bit (CmmMachOp mop [x]) = do -- unary MachOps
       -- Nop conversions
       MO_UU_Conv W32 W8  -> toI8Reg  W32 x
       MO_SS_Conv W32 W8  -> toI8Reg  W32 x
+      MO_XX_Conv W32 W8  -> toI8Reg  W32 x
       MO_UU_Conv W16 W8  -> toI8Reg  W16 x
       MO_SS_Conv W16 W8  -> toI8Reg  W16 x
+      MO_XX_Conv W16 W8  -> toI8Reg  W16 x
       MO_UU_Conv W32 W16 -> toI16Reg W32 x
       MO_SS_Conv W32 W16 -> toI16Reg W32 x
+      MO_XX_Conv W32 W16 -> toI16Reg W32 x
 
       MO_UU_Conv W64 W32 | not is32Bit -> conversionNop II64 x
       MO_SS_Conv W64 W32 | not is32Bit -> conversionNop II64 x
+      MO_XX_Conv W64 W32 | not is32Bit -> conversionNop II64 x
       MO_UU_Conv W64 W16 | not is32Bit -> toI16Reg W64 x
       MO_SS_Conv W64 W16 | not is32Bit -> toI16Reg W64 x
+      MO_XX_Conv W64 W16 | not is32Bit -> toI16Reg W64 x
       MO_UU_Conv W64 W8  | not is32Bit -> toI8Reg  W64 x
       MO_SS_Conv W64 W8  | not is32Bit -> toI8Reg  W64 x
+      MO_XX_Conv W64 W8  | not is32Bit -> toI8Reg  W64 x
 
       MO_UU_Conv rep1 rep2 | rep1 == rep2 -> conversionNop (intFormat rep1) x
       MO_SS_Conv rep1 rep2 | rep1 == rep2 -> conversionNop (intFormat rep1) x
+      MO_XX_Conv rep1 rep2 | rep1 == rep2 -> conversionNop (intFormat rep1) x
 
       -- widenings
       MO_UU_Conv W8  W32 -> integerExtend W8  W32 MOVZxL x
@@ -668,16 +675,26 @@ getRegister' dflags is32Bit (CmmMachOp mop [x]) = do -- unary MachOps
       MO_SS_Conv W16 W32 -> integerExtend W16 W32 MOVSxL x
       MO_SS_Conv W8  W16 -> integerExtend W8  W16 MOVSxL x
 
+      -- We don't care about the upper bits for MO_XX_Conv, so MOV is enough.
+      MO_XX_Conv W8  W32 -> integerExtend W8  W32 MOV x
+      MO_XX_Conv W16 W32 -> integerExtend W16 W32 MOV x
+      MO_XX_Conv W8  W16 -> integerExtend W8  W16 MOV x
+
       MO_UU_Conv W8  W64 | not is32Bit -> integerExtend W8  W64 MOVZxL x
       MO_UU_Conv W16 W64 | not is32Bit -> integerExtend W16 W64 MOVZxL x
       MO_UU_Conv W32 W64 | not is32Bit -> integerExtend W32 W64 MOVZxL x
       MO_SS_Conv W8  W64 | not is32Bit -> integerExtend W8  W64 MOVSxL x
       MO_SS_Conv W16 W64 | not is32Bit -> integerExtend W16 W64 MOVSxL x
       MO_SS_Conv W32 W64 | not is32Bit -> integerExtend W32 W64 MOVSxL x
-        -- for 32-to-64 bit zero extension, amd64 uses an ordinary movl.
-        -- However, we don't want the register allocator to throw it
-        -- away as an unnecessary reg-to-reg move, so we keep it in
-        -- the form of a movzl and print it as a movl later.
+      -- For 32-to-64 bit zero extension, amd64 uses an ordinary movl.
+      -- However, we don't want the register allocator to throw it
+      -- away as an unnecessary reg-to-reg move, so we keep it in
+      -- the form of a movzl and print it as a movl later.
+      -- This doesn't apply to MO_XX_Conv since in this case we don't care about
+      -- the upper bits. So we can just use MOV.
+      MO_XX_Conv W8  W64 | not is32Bit -> integerExtend W8  W64 MOV x
+      MO_XX_Conv W16 W64 | not is32Bit -> integerExtend W16 W64 MOV x
+      MO_XX_Conv W32 W64 | not is32Bit -> integerExtend W32 W64 MOV x
 
       MO_FF_Conv W32 W64
         | sse2      -> coerceFP2FP W64 x

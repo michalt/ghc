@@ -1186,6 +1186,9 @@ genMachOp _ op [x] = case op of
     MO_UU_Conv from to
         -> sameConv from (widthToLlvmInt to) LM_Trunc LM_Zext
 
+    MO_XX_Conv from to
+        -> sameConv from (widthToLlvmInt to) LM_Bitcast LM_Bitcast
+
     MO_FF_Conv from to
         -> sameConv from (widthToLlvmFloat to) LM_Fptrunc LM_Fpext
 
@@ -1442,6 +1445,7 @@ genMachOp_slow opt op [x, y] = case op of
     MO_FS_Conv _ _ -> panicOp
     MO_SS_Conv _ _ -> panicOp
     MO_UU_Conv _ _ -> panicOp
+    MO_XX_Conv _ _ -> panicOp
     MO_FF_Conv _ _ -> panicOp
 
     MO_V_Insert  {} -> panicOp
