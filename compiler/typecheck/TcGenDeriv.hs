@@ -2098,6 +2098,9 @@ ordOpTbl
     ,(floatPrimTy , (ltFloat_RDR , leFloat_RDR , eqFloat_RDR , geFloat_RDR , gtFloat_RDR ))
     ,(doublePrimTy, (ltDouble_RDR, leDouble_RDR, eqDouble_RDR, geDouble_RDR, gtDouble_RDR)) ]
 
+-- A mapping from a primitive type to a function that constructs its boxed
+-- version.
+-- NOTE: Int8#/Word8# will become Int/Word.
 boxConTbl :: [(Type, LHsExpr GhcPs -> LHsExpr GhcPs)]
 boxConTbl =
     [ (charPrimTy  , nlHsApp (nlHsVar $ getRdrName charDataCon))
