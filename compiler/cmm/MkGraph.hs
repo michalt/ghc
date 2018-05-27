@@ -416,9 +416,11 @@ copyOutOflow dflags conv transfer area actuals updfr_off extra_stack_stuff
 --   8 bits (e.g., for %eax we can use %al, but there isn't a corresponding
 --   8-bit register for %edi). So we would either need to extend/narrow anyway,
 --   or complicate the calling convention.
--- So instead, we always zero-extend every parameter smaller than native word
--- width in copyOutOflow and then truncate it back to the expected width in
--- copyIn.
+-- So instead, we always extend every parameter smaller than native word width
+-- in copyOutOflow and then truncate it back to the expected width in copyIn.
+-- Note that we do this in cmm using MO_XX_Conv to avoid requiring
+-- zero-/sign-extending - it's up to a backend to handle this in a most
+-- efficient way (e.g., a simple register move)
 --
 -- There was some discussion about this on this PR:
 -- https://github.com/ghc-proposals/ghc-proposals/pull/74
