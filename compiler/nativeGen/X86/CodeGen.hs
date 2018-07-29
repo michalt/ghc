@@ -2522,6 +2522,10 @@ genCCall32' dflags target dest_regs args = do
                            )
 
           | otherwise = do
+            -- Arguments can be smaller than 32-bit, but we still use @PUSH
+            -- II32@ - the usual calling conventions expect integers to be
+            -- 4-byte aligned.
+            ASSERT((typeWidth arg_ty) <= W32) return ()
             (operand, code) <- getOperand arg
             delta <- getDeltaNat
             setDeltaNat (delta-size)
@@ -2761,7 +2765,10 @@ genCCall64' dflags target dest_regs args = do
              push_args rest code'
 
            | otherwise = do
-             ASSERT(width == W64) return ()
+             -- Arguments can be smaller than 64-bit, but we still use @PUSH
+             -- II64@ - the usual calling conventions expect integers to be
+             -- 8-byte aligned.
+             ASSERT(width <= W64) return ()
              (arg_op, arg_code) <- getOperand arg
              delta <- getDeltaNat
              setDeltaNat (delta-arg_size)
